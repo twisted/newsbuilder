@@ -23,7 +23,7 @@ from twisted.python import release
 from twisted.python.filepath import FilePath
 from twisted.python.versions import Version
 
-from twisted.python._release import (
+from newsbuilder.python._release import (
     _changeVersionInFile, findTwistedProjects, replaceInFile,
     replaceProjectVersion, Project, generateVersionFileData,
     CommandFailed, runCommand, NewsBuilder, NotWorkingDirectory)
