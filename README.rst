@@ -7,7 +7,7 @@ A NEWS file is a text file stored in the top level of your project. It contains 
 
 If authors are allowed to modify the NEWS file directly, though, you will soon encounter spurious conflicts. To avoid this, Newsbuilder uses a scheme involving separate files for each change.
 
-Branch Authors write high-level descriptions of their changes into a specially named text file and add it to a `topfiles` directory in the package. Newsbuilder will then aggregate these text files, add the content to the project level NEWS file and delete the original text files. The changes to the project NEWS file can then be reviewed, committed and distributed at each release.
+Branch authors write high-level descriptions of their changes into a specially named text file and add it to a `topfiles` directory in the package. Newsbuilder will then aggregate these text files, add the content to the project level NEWS file and delete the original text files. The changes to the project NEWS file can then be reviewed, committed and distributed at each release.
 
 An entry must be a file named <ticket number>.<change type> (eg. 1234.bugfix). You should replace <ticket number> with the ticket number which is being resolved by the change (if multiple tickets are resolved, multiple files with the same contents should be added). The <change type> extension is replaced by one of the following literal strings:
 
@@ -43,12 +43,15 @@ Features:
 Deprecations:
 
     > twisted.trial.util.findObject is now deprecated.
+
     > twisted.conch.insults.colors is now deprecated in favor of twisted.conch.insults.helper.
+
     > twisted.runner.procmon.ProcessMonitor's active, consistency, and consistencyDelay attributes are now deprecated.
 
 Removals:
 
     > twisted.internet.interfaces.IReactorTime.cancelCallLater, deprecated since Twisted 2.5, has been removed.
+
     > Support for versions of pyOpenSSL older than 0.10 has been removed.
 
 You don't need to worry about newlines in the file; the contents will be rewrapped when added to the NEWS files.
