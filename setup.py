@@ -39,7 +39,7 @@ if __name__ == '__main__':
         license='MIT',
         packages=['newsbuilder', 'newsbuilder.test'],
         url='https://github.com/twisted/newsbuilder',
-        maintainer='Richard Wall',
-        maintainer_email='richard.wall@hybridcluster.com',
+        maintainer='Twisted Matrix Laboratories',
+        maintainer_email='twisted-python@twistedmatrix.com',
         long_description=read('README.rst'),
     )
