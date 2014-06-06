@@ -2,7 +2,7 @@
 # See LICENSE for details.
 
 """
-Tests for L{twisted.python.release} and L{twisted.python._release}.
+Tests for L{newsbuilder}.
 
 All of these tests are skipped on platforms other than Linux, as the release is
 only ever performed on Linux.
@@ -23,8 +23,8 @@ from twisted.python import release
 from twisted.python.filepath import FilePath
 from twisted.python.versions import Version
 
-from newsbuilder.python._release import (
-    _changeVersionInFile, findTwistedProjects, replaceInFile,
+from newsbuilder import (
+    findTwistedProjects, replaceInFile,
     replaceProjectVersion, Project, generateVersionFileData,
     CommandFailed, runCommand, NewsBuilder, NotWorkingDirectory)
 

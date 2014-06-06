@@ -3,9 +3,6 @@
 # Copyright (c) Twisted Matrix Laboratories.
 # See LICENSE for details.
 
-# This script is not meant to be distributed to users of Twisted.
-# It is only for use in making upstream Twisted releases.
-
 import sys, os
 extra = os.path.dirname(os.path.dirname(sys.argv[0]))
 sys.path.insert(0, extra)
@@ -15,6 +12,6 @@ except ImportError:
     sys.exc_clear()
 sys.path.remove(extra)
 
-from newsbuilder.python._release import NewsBuilder
+from newsbuilder import NewsBuilder
 
 NewsBuilder().main(sys.argv[1:])
