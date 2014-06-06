@@ -37,7 +37,7 @@ if __name__ == '__main__':
         install_requires=['twisted'],
         keywords='release',
         license='MIT',
-        packages=['newsbuilder', 'newsbuilder.tests'],
+        packages=['newsbuilder', 'newsbuilder.test'],
         url='https://github.com/twisted/newsbuilder',
         maintainer='Richard Wall',
         maintainer_email='richard.wall@hybridcluster.com',
