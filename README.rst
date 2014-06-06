@@ -35,24 +35,24 @@ Here are some examples:
 
 Features:
 
-    > twisted.protocols.amp now raises InvalidSignature when bad arguments are passed to Command.makeArguments
+    twisted.protocols.amp now raises InvalidSignature when bad arguments are passed to Command.makeArguments
 
-    > The new module twisted.internet.endpoints provides an interface for specifying address families separately from socket types.
+    The new module twisted.internet.endpoints provides an interface for specifying address families separately from socket types.
 
 
 Deprecations:
 
-    > twisted.trial.util.findObject is now deprecated.
+    twisted.trial.util.findObject is now deprecated.
 
-    > twisted.conch.insults.colors is now deprecated in favor of twisted.conch.insults.helper.
+    twisted.conch.insults.colors is now deprecated in favor of twisted.conch.insults.helper.
 
-    > twisted.runner.procmon.ProcessMonitor's active, consistency, and consistencyDelay attributes are now deprecated.
+    twisted.runner.procmon.ProcessMonitor's active, consistency, and consistencyDelay attributes are now deprecated.
 
 Removals:
 
-    > twisted.internet.interfaces.IReactorTime.cancelCallLater, deprecated since Twisted 2.5, has been removed.
+    twisted.internet.interfaces.IReactorTime.cancelCallLater, deprecated since Twisted 2.5, has been removed.
 
-    > Support for versions of pyOpenSSL older than 0.10 has been removed.
+    Support for versions of pyOpenSSL older than 0.10 has been removed.
 
 You don't need to worry about newlines in the file; the contents will be rewrapped when added to the NEWS files.
 
