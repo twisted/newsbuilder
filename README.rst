@@ -1,3 +1,6 @@
+.. image:: https://badge.waffle.io/twisted/newsbuilder.png?label=ready&title=Ready 
+ :target: https://waffle.io/twisted/newsbuilder
+ :alt: 'Stories in Ready'
 Newsbuilder
 ===========
 
