@@ -42,4 +42,7 @@ if __name__ == '__main__':
         maintainer='Twisted Matrix Laboratories',
         maintainer_email='twisted-python@twistedmatrix.com',
         long_description=read('README.rst'),
+        scripts=[
+            'bin/newsbuilder'
+        ],
     )
