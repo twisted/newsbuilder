@@ -108,6 +108,8 @@ For example:
 
 You may not have all the required Python versions installed, in which case you will see one or more ``InterpreterNotFound`` errors.
 
+``tox`` will also print a short `coverage`_ report and a `pyflakes`_ report.
+
 You can also install `tox`_ in a `virtualenv`_ if you prefer not to install it permanently.
 
 .. _Github page: https://github.com/twisted/newsbuilder
@@ -118,3 +120,5 @@ You can also install `tox`_ in a `virtualenv`_ if you prefer not to install it p
 .. _trial: https://twistedmatrix.com/documents/current/core/howto/trial.html
 .. _`tox`: https://pypi.python.org/pypi/tox
 .. _`virtualenv`: https://pypi.python.org/pypi/virtualenv
+.. _`coverage`: https://pypi.python.org/pypi/coverage
+.. _`pyflakes`: https://pypi.python.org/pypi/pyflakes
