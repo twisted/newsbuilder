@@ -86,6 +86,8 @@ Running Tests
 
 .. code-block:: console
 
+    $ cd ~/myprojects/newsbuilder
+    $ pip install --editable .
     $ trial newsbuilder
     ...
     Ran 25 tests in 4.338s
@@ -101,6 +103,7 @@ For example:
 .. code-block:: console
 
     $ pip install --user tox
+    $ cd ~/myprojects/newsbuilder
     $ tox
 
 You may not have all the required Python versions installed, in which case you will see one or more ``InterpreterNotFound`` errors.
