@@ -4,6 +4,7 @@
 """
 Distutils installer for Newsbuilder
 """
+from os import path
 
 from setuptools import setup
 
@@ -41,7 +42,7 @@ if __name__ == '__main__':
         url='https://github.com/twisted/newsbuilder',
         maintainer='Twisted Matrix Laboratories',
         maintainer_email='twisted-python@twistedmatrix.com',
-        long_description=read('README.rst'),
+        long_description=read(path.join(path.dirname(__file__), "README.rst")),
         scripts=[
             'bin/newsbuilder'
         ],
