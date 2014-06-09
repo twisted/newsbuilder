@@ -99,11 +99,11 @@ For this we use `tox`_, which will automatically create a `virtualenv`_ for each
 For example:
 
 .. code-block:: console
+
     $ pip install --user tox
     $ tox
 
-You may not have all the required Python versions installed,
-in which case you will see one or more ``InterpreterNotFound`` errors.
+You may not have all the required Python versions installed, in which case you will see one or more ``InterpreterNotFound`` errors.
 
 You can also install `tox`_ in a `virtualenv`_ if you prefer not to install it permanently.
 
