@@ -1,10 +1,22 @@
 .. image:: https://badge.waffle.io/twisted/newsbuilder.png?label=ready&title=Ready 
  :target: https://waffle.io/twisted/newsbuilder
  :alt: 'Stories in Ready'
+
 Newsbuilder
 ===========
 
-Newsbuilder is a tool to automatically generate and manage a NEWS file from snippets stored in per-ticket text files.
+Newsbuilder let's you avoid merge conflicts in your project's NEWS file, by turning a folder full of ticket news snippets like this:
+
+* *123.bugfix*: Fixed a thing.
+* *124.feature*: Added a feature.
+
+Into something like this:
+
+Features:
+    Added a feature (#124).
+Bugfixes:
+    Fixed a thing (#123).
+
 
 A NEWS file is a text file stored in the top level of your project. It contains descriptions of the bugs, enhancements and miscellaneous changes made in each release.
 
