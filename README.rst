@@ -82,7 +82,7 @@ Bugs and feature requests should be filed at the project's `Github page`_.
 Running Tests
 ~~~~~~~~~~~~~
 ``newsbuilder`` unit tests are found in the ``newsbuilder/test/`` directory and are designed to be run using `trial`_.
-`trial`_ will discover the tests automatically, so all you have to do is:
+``trial`` will discover the tests automatically, so all you have to do is:
 
 .. code-block:: console
 
