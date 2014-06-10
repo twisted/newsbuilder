@@ -20,7 +20,7 @@ def read(path):
     """
     Read the contents of a file.
     """
-    with open(path) as f:
+    with open(path.join(path.dirname(__file__), path)) as f:
         return f.read()
 
 
