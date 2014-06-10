@@ -8,9 +8,10 @@ env:
     - "TOX_ENV=pypy"
 
 install:
-    - "./.travis/install.sh"
+    - "pip install tox"
 
-script: "tox -e ${TOX_ENV}"
+script:
+    - "tox -e ${TOX_ENV}"
 
 notifications:
     email: false
