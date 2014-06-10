@@ -26,7 +26,7 @@ from twisted.python.versions import Version
 from newsbuilder import (
     findTwistedProjects, replaceInFile,
     replaceProjectVersion, Project, generateVersionFileData,
-    CommandFailed, runCommand, NewsBuilder, NotWorkingDirectory)
+    runCommand, NewsBuilder, NotWorkingDirectory)
 
 if os.name != 'posix':
     skip = "Release toolchain only supported on POSIX."
