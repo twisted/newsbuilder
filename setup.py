@@ -16,11 +16,11 @@ versioneer.parentdir_prefix = 'newsbuilder-' # dirname like 'myproject-1.2.0'
 
 
 
-def read(path):
+def read(name):
     """
     Read the contents of a file.
     """
-    with open(path.join(path.dirname(__file__), path)) as f:
+    with open(path.join(path.dirname(__file__), name)) as f:
         return f.read()
 
 
