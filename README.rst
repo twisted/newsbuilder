@@ -118,7 +118,7 @@ You can also install `tox`_ in a `virtualenv`_ if you prefer not to install it p
 .. _enforcenews.py: http://bazaar.launchpad.net/~exarkun/twisted-trac-integration/trunk/annotate/head%3A/svn-hooks/enforcenews.py
 .. _The original documentation for Twisted's newsbuilder: https://twistedmatrix.com/trac/wiki/ReviewProcess#Newsfiles
 .. _trial: https://twistedmatrix.com/documents/current/core/howto/trial.html
-.. _`tox`: https://pypi.python.org/pypi/tox
-.. _`virtualenv`: https://pypi.python.org/pypi/virtualenv
-.. _`coverage`: https://pypi.python.org/pypi/coverage
-.. _`pyflakes`: https://pypi.python.org/pypi/pyflakes
+.. _tox: https://pypi.python.org/pypi/tox
+.. _virtualenv: https://pypi.python.org/pypi/virtualenv
+.. _coverage: https://pypi.python.org/pypi/coverage
+.. _pyflakes: https://pypi.python.org/pypi/pyflakes
