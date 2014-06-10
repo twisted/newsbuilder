@@ -1,2 +1,3 @@
+include README.rst
 include versioneer.py
 include newsbuilder/_version.py
