@@ -98,19 +98,11 @@ This runs the tests with the default Python interpreter.
 
 You can also verify that the tests pass on other supported Python interpreters.
 For this we use `tox`_, which will automatically create a `virtualenv`_ for each supported Python version and run the tests.
-For example:
-
-.. code-block:: console
-
-    $ pip install --user tox
-    $ cd ~/myprojects/newsbuilder
-    $ tox
+Run the ``tox`` command from the project root.
 
 You may not have all the required Python versions installed, in which case you will see one or more ``InterpreterNotFound`` errors.
 
 ``tox`` will also print a short `coverage`_ report and a `pyflakes`_ report.
-
-You can also install `tox`_ in a `virtualenv`_ if you prefer not to install it permanently.
 
 .. _Github page: https://github.com/twisted/newsbuilder
 .. _an example of a real overall news file: https://twistedmatrix.com/trac/browser/trunk/NEWS
