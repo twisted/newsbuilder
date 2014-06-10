@@ -1,4 +1,4 @@
-.. image:: https://badge.waffle.io/twisted/newsbuilder.png?label=ready&title=Ready 
+.. image:: https://badge.waffle.io/twisted/newsbuilder.png?label=ready&title=Ready
  :target: https://waffle.io/twisted/newsbuilder
  :alt: 'Stories in Ready'
 
@@ -73,10 +73,44 @@ You don't need to worry about newlines in the file; the contents will be rewrapp
 
 See `enforcenews.py`_ for the svn pre-commit hook which enforces this policy.
 
+
+Reporting Bugs
+~~~~~~~~~~~~~~
 Bugs and feature requests should be filed at the project's `Github page`_.
+
+
+Running Tests
+~~~~~~~~~~~~~
+``newsbuilder`` unit tests are found in the ``newsbuilder/test/`` directory and are designed to be run using `trial`_.
+``trial`` will discover the tests automatically, so all you have to do is:
+
+.. code-block:: console
+
+    $ cd ~/myprojects/newsbuilder
+    $ pip install --editable .
+    $ trial newsbuilder
+    ...
+    Ran 25 tests in 4.338s
+
+    PASSED (successes=25)
+
+This runs the tests with the default Python interpreter.
+
+You can also verify that the tests pass on other supported Python interpreters.
+For this we use `tox`_, which will automatically create a `virtualenv`_ for each supported Python version and run the tests.
+Run the ``tox`` command from the project root.
+
+You may not have all the required Python versions installed, in which case you will see one or more ``InterpreterNotFound`` errors.
+
+``tox`` will also print a short `coverage`_ report and a `pyflakes`_ report.
 
 .. _Github page: https://github.com/twisted/newsbuilder
 .. _an example of a real overall news file: https://twistedmatrix.com/trac/browser/trunk/NEWS
 .. _an example of a subproject news file: https://twistedmatrix.com/trac/browser/trunk/twisted/web/topfiles/NEWS
 .. _enforcenews.py: http://bazaar.launchpad.net/~exarkun/twisted-trac-integration/trunk/annotate/head%3A/svn-hooks/enforcenews.py
 .. _The original documentation for Twisted's newsbuilder: https://twistedmatrix.com/trac/wiki/ReviewProcess#Newsfiles
+.. _trial: https://twistedmatrix.com/documents/current/core/howto/trial.html
+.. _tox: https://pypi.python.org/pypi/tox
+.. _virtualenv: https://pypi.python.org/pypi/virtualenv
+.. _coverage: https://pypi.python.org/pypi/coverage
+.. _pyflakes: https://pypi.python.org/pypi/pyflakes
