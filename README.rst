@@ -1,3 +1,7 @@
+.. image:: https://travis-ci.org/twisted/newsbuilder.svg
+ :target: https://travis-ci.org/twisted/newsbuilder
+ :alt: 'Travis-CI build status'
+
 .. image:: https://badge.waffle.io/twisted/newsbuilder.png?label=ready&title=Ready
  :target: https://waffle.io/twisted/newsbuilder
  :alt: 'Stories in Ready'
