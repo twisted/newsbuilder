@@ -1,0 +1,2 @@
+include versioneer.py
+include newsbuilder/_version.py
