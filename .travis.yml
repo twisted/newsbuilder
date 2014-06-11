@@ -8,11 +8,23 @@ env:
     - "TOX_ENV=pypy"
 
 install:
-    - "pip install tox"
+    - |
+      pip install tox
+
+    - |
+      if [[ "$TOX_ENV" == 'py27' ]]; then
+         pip install coveralls
+      fi
 
 script:
     - |
       tox -e "${TOX_ENV}"
+
+after_success:
+  - |
+    if [[ "$TOX_ENV" == 'py27' ]]; then
+       coveralls
+    fi
 
 notifications:
     email: false
