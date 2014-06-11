@@ -2,8 +2,8 @@
  :target: https://travis-ci.org/twisted/newsbuilder
  :alt: 'Travis-CI build status'
 
-.. image:: https://coveralls.io/repos/wallrj/newsbuilder/badge.png
- :target: https://coveralls.io/r/wallrj/newsbuilder
+.. image:: https://coveralls.io/repos/twisted/newsbuilder/badge.png
+ :target: https://coveralls.io/r/twisted/newsbuilder
  :alt: 'Coveralls code coverage report'
 
 .. image:: https://badge.waffle.io/twisted/newsbuilder.png?label=ready&title=Ready
