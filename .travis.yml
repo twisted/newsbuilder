@@ -12,7 +12,7 @@ install:
       pip install tox
 
     - |
-      if [[ "$TOX_ENV" == 'py27' ]]; then
+      if [[ "${TOX_ENV}" == 'py27' ]]; then
          pip install coveralls
       fi
 
@@ -22,7 +22,7 @@ script:
 
 after_success:
   - |
-    if [[ "$TOX_ENV" == 'py27' ]]; then
+    if [[ "${TOX_ENV}" == 'py27' ]]; then
        coveralls
     fi
 
