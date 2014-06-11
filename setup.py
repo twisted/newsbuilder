@@ -8,6 +8,14 @@ from os import path
 
 from setuptools import setup
 
+import versioneer
+versioneer.versionfile_source = 'newsbuilder/_version.py'
+versioneer.versionfile_build = 'newsbuilder/_version.py'
+versioneer.tag_prefix = '' # tags are like 1.2.0
+versioneer.parentdir_prefix = 'newsbuilder-' # dirname like 'myproject-1.2.0'
+
+
+
 def read(path):
     """
     Read the contents of a file.
@@ -31,7 +39,8 @@ if __name__ == '__main__':
             'Programming Language :: Python :: Implementation :: PyPy',
         ],
         name='newsbuilder',
-        version='0.1',
+        version=versioneer.get_version(),
+        cmdclass=versioneer.get_cmdclass(),
         description=(
             'Automatically generate and manage a NEWS file from snippets '
             'stored in per-ticket text files.'),
