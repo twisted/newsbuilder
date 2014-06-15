@@ -28,7 +28,7 @@ from newsbuilder import (
     findTwistedProjects, replaceInFile,
     replaceProjectVersion, Project, generateVersionFileData,
     runCommand, NewsBuilder, NotWorkingDirectory, NewsBuilderOptions,
-    NewsBuilderScript)
+    NewsBuilderScript, TwistedBuildStrategy)
 
 if os.name != 'posix':
     skip = "Release toolchain only supported on POSIX."
@@ -53,39 +53,42 @@ def genVersion(*args, **kwargs):
 
 
 
+def createStructure(root, dirDict):
+    """
+    Create a set of directories and files given a dict defining their
+    structure.
+
+    @param root: The directory in which to create the structure.  It must
+        already exist.
+    @type root: L{FilePath}
+
+    @param dirDict: The dict defining the structure. Keys should be strings
+        naming files, values should be strings describing file contents OR
+        dicts describing subdirectories.  All files are written in binary
+        mode.  Any string values are assumed to describe text files and
+        will have their newlines replaced with the platform-native newline
+        convention.  For example::
+
+            {"foofile": "foocontents",
+             "bardir": {"barfile": "bar\ncontents"}}
+    @type dirDict: C{dict}
+    """
+    for x in dirDict:
+        child = root.child(x)
+        if isinstance(dirDict[x], dict):
+            child.createDirectory()
+            createStructure(child, dirDict[x])
+        else:
+            child.setContent(dirDict[x].replace('\n', os.linesep))
+
+
+
 class StructureAssertingMixin(object):
     """
     A mixin for L{TestCase} subclasses which provides some methods for
     asserting the structure and contents of directories and files on the
     filesystem.
     """
-    def createStructure(self, root, dirDict):
-        """
-        Create a set of directories and files given a dict defining their
-        structure.
-
-        @param root: The directory in which to create the structure.  It must
-            already exist.
-        @type root: L{FilePath}
-
-        @param dirDict: The dict defining the structure. Keys should be strings
-            naming files, values should be strings describing file contents OR
-            dicts describing subdirectories.  All files are written in binary
-            mode.  Any string values are assumed to describe text files and
-            will have their newlines replaced with the platform-native newline
-            convention.  For example::
-
-                {"foofile": "foocontents",
-                 "bardir": {"barfile": "bar\ncontents"}}
-        @type dirDict: C{dict}
-        """
-        for x in dirDict:
-            child = root.child(x)
-            if isinstance(dirDict[x], dict):
-                child.createDirectory()
-                self.createStructure(child, dirDict[x])
-            else:
-                child.setContent(dirDict[x].replace('\n', os.linesep))
 
     def assertStructure(self, root, dirDict):
         """
@@ -287,6 +290,45 @@ class UtilityTest(TestCase):
 
 
 
+def svnCommit(project, repositoryPath):
+    """
+    Make the C{project} directory a valid subversion directory with all
+    files committed.
+    """
+    repository = FilePath(repositoryPath)
+
+    runCommand(["svnadmin", "create", repository.path])
+    runCommand(["svn", "checkout", "file://" + repository.path,
+                project.path])
+
+    runCommand(["svn", "add"] + glob.glob(project.path + "/*"))
+    runCommand(["svn", "commit", project.path, "-m", "yay"])
+
+
+
+def createFakeTwistedProject(rootPath):
+    """
+    Create a fake-looking Twisted project to build from.
+    """
+    project = FilePath(rootPath).child("twisted")
+    project.makedirs()
+    createStructure(
+        project, {
+            'NEWS': 'Old boring stuff from the past.\n',
+            '_version.py': genVersion("twisted", 1, 2, 3),
+            'topfiles': {
+                'NEWS': 'Old core news.\n',
+                '3.feature': 'Third feature addition.\n',
+                '5.misc': ''},
+            'conch': {
+                '_version.py': genVersion("twisted.conch", 3, 4, 5),
+                'topfiles': {
+                    'NEWS': 'Old conch news.\n',
+                    '7.bugfix': 'Fixed that bug.\n'}}})
+    return project
+
+
+
 class NewsBuilderTests(TestCase, StructureAssertingMixin):
     """
     Tests for L{NewsBuilder}.
@@ -303,7 +345,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         self.project.createDirectory()
 
         self.existingText = 'Here is stuff which was present previously.\n'
-        self.createStructure(
+        createStructure(
             self.project, {
                 'NEWS': self.existingText,
                 '5.feature': 'We now support the web.\n',
@@ -322,32 +364,6 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
                 '35.misc': '',
                 '40.doc': 'foo.bar.Baz.quux',
                 '41.doc': 'writing Foo servers'})
-
-
-    def svnCommit(self, project=None):
-        """
-        Make the C{project} directory a valid subversion directory with all
-        files committed.
-        """
-        if project is None:
-            project = self.project
-        repositoryPath = self.mktemp()
-        repository = FilePath(repositoryPath)
-
-        runCommand(["svnadmin", "create", repository.path])
-        runCommand(["svn", "checkout", "file://" + repository.path,
-                    project.path])
-
-        runCommand(["svn", "add"] + glob.glob(project.path + "/*"))
-        runCommand(["svn", "commit", project.path, "-m", "yay"])
-
-
-    def test_today(self):
-        """
-        L{NewsBuilder._today} returns today's date in YYYY-MM-DD form.
-        """
-        self.assertEqual(
-            self.builder._today(), date.today().strftime('%Y-%m-%d'))
 
 
     def test_findFeatures(self):
@@ -536,7 +552,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         """
         project = FilePath(self.mktemp()).child("twisted")
         project.makedirs()
-        self.createStructure(project, {'NEWS': self.existingText})
+        createStructure(project, {'NEWS': self.existingText})
 
         self.builder.build(
             project, project.child('NEWS'),
@@ -678,83 +694,6 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
             'Here is stuff which was present previously.\n')
 
 
-    def createFakeTwistedProject(self):
-        """
-        Create a fake-looking Twisted project to build from.
-        """
-        project = FilePath(self.mktemp()).child("twisted")
-        project.makedirs()
-        self.createStructure(
-            project, {
-                'NEWS': 'Old boring stuff from the past.\n',
-                '_version.py': genVersion("twisted", 1, 2, 3),
-                'topfiles': {
-                    'NEWS': 'Old core news.\n',
-                    '3.feature': 'Third feature addition.\n',
-                    '5.misc': ''},
-                'conch': {
-                    '_version.py': genVersion("twisted.conch", 3, 4, 5),
-                    'topfiles': {
-                        'NEWS': 'Old conch news.\n',
-                        '7.bugfix': 'Fixed that bug.\n'}}})
-        return project
-
-
-    def test_buildAll(self):
-        """
-        L{NewsBuilder.buildAll} calls L{NewsBuilder.build} once for each
-        subproject, passing that subproject's I{topfiles} directory as C{path},
-        the I{NEWS} file in that directory as C{output}, and the subproject's
-        name as C{header}, and then again for each subproject with the
-        top-level I{NEWS} file for C{output}. Blacklisted subprojects are
-        skipped.
-        """
-        builds = []
-        builder = NewsBuilder()
-        builder.build = lambda path, output, header: builds.append((
-            path, output, header))
-        builder._today = lambda: '2009-12-01'
-
-        project = self.createFakeTwistedProject()
-        self.svnCommit(project)
-        builder.buildAll(project)
-
-        coreTopfiles = project.child("topfiles")
-        coreNews = coreTopfiles.child("NEWS")
-        coreHeader = "Twisted Core 1.2.3 (2009-12-01)"
-
-        conchTopfiles = project.child("conch").child("topfiles")
-        conchNews = conchTopfiles.child("NEWS")
-        conchHeader = "Twisted Conch 3.4.5 (2009-12-01)"
-
-        aggregateNews = project.child("NEWS")
-
-        self.assertEqual(
-            builds,
-            [(conchTopfiles, conchNews, conchHeader),
-             (conchTopfiles, aggregateNews, conchHeader),
-             (coreTopfiles, coreNews, coreHeader),
-             (coreTopfiles, aggregateNews, coreHeader)])
-
-
-    def test_buildAllAggregate(self):
-        """
-        L{NewsBuilder.buildAll} aggregates I{NEWS} information into the top
-        files, only deleting fragments once it's done.
-        """
-        builder = NewsBuilder()
-        project = self.createFakeTwistedProject()
-        self.svnCommit(project)
-        builder.buildAll(project)
-
-        aggregateNews = project.child("NEWS")
-
-        aggregateContent = aggregateNews.getContent()
-        self.assertIn("Third feature addition", aggregateContent)
-        self.assertIn("Fixed that bug", aggregateContent)
-        self.assertIn("Old boring stuff from the past", aggregateContent)
-
-
     def test_changeVersionInNews(self):
         """
         L{NewsBuilder._changeVersions} gets the release date for a given
@@ -762,8 +701,8 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         """
         builder = NewsBuilder()
         builder._today = lambda: '2009-12-01'
-        project = self.createFakeTwistedProject()
-        self.svnCommit(project)
+        project = createFakeTwistedProject(self.mktemp())
+        svnCommit(project, repositoryPath=self.mktemp())
         builder.buildAll(project)
         newVersion = Version('TEMPLATE', 7, 7, 14)
         coreNews = project.child('topfiles').child('NEWS')
@@ -784,32 +723,6 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
             ' - #5\n\n\n')
         self.assertEqual(
             expectedCore + 'Old core news.\n', coreNews.getContent())
-
-
-    def test_removeNEWSfragments(self):
-        """
-        L{NewsBuilder.buildALL} removes all the NEWS fragments after the build
-        process, using the C{svn} C{rm} command.
-        """
-        builder = NewsBuilder()
-        project = self.createFakeTwistedProject()
-        self.svnCommit(project)
-        builder.buildAll(project)
-
-        self.assertEqual(5, len(project.children()))
-        output = runCommand(["svn", "status", project.path])
-        removed = [line for line in output.splitlines()
-                   if line.startswith("D ")]
-        self.assertEqual(3, len(removed))
-
-
-    def test_checkSVN(self):
-        """
-        L{NewsBuilder.buildAll} raises L{NotWorkingDirectory} when the given
-        path is not a SVN checkout.
-        """
-        self.assertRaises(
-            NotWorkingDirectory, self.builder.buildAll, self.project)
 
 
 
@@ -859,7 +772,7 @@ class NewsBuilderScriptTests(TestCase):
 
     def test_mainCallsBuildAll(self):
         """
-        L{BuildNewsScript.main} calls L{NewsBuilder.buildAll} with the supplied
+        L{BuildNewsScript.main} calls C{self.newsBuilder} with the supplied
         repository directory path.
         """
         expectedPath = b'/foo/bar/baz'
@@ -870,6 +783,103 @@ class NewsBuilderScriptTests(TestCase):
             [FilePath(expectedPath)],
             fakeNewsBuilder.buildAllCalls
         )
+
+
+
+class TwistedBuildStrategyTests(StructureAssertingMixin, TestCase):
+
+    def test_today(self):
+        """
+        L{TwistedBuildStrategy._today} returns today's date in YYYY-MM-DD form.
+        """
+        strategy = TwistedBuildStrategy(newsBuilder=object())
+        self.assertEqual(
+            strategy._today(), date.today().strftime('%Y-%m-%d'))
+
+
+    def test_buildAll(self):
+        """
+        L{TwistedBuildStrategy.buildAll} calls L{NewsBuilder.build} once for each
+        subproject, passing that subproject's I{topfiles} directory as C{path},
+        the I{NEWS} file in that directory as C{output}, and the subproject's
+        name as C{header}, and then again for each subproject with the
+        top-level I{NEWS} file for C{output}. Blacklisted subprojects are
+        skipped.
+        """
+        builds = []
+        builder = NewsBuilder()
+        builder.build = lambda path, output, header: builds.append((
+            path, output, header))
+
+        project = createFakeTwistedProject(self.mktemp())
+        svnCommit(project, repositoryPath=self.mktemp())
+        strategy = TwistedBuildStrategy(newsBuilder=builder)
+        strategy._today = lambda: '2009-12-01'
+        strategy.buildAll(project)
+
+        coreTopfiles = project.child("topfiles")
+        coreNews = coreTopfiles.child("NEWS")
+        coreHeader = "Twisted Core 1.2.3 (2009-12-01)"
+
+        conchTopfiles = project.child("conch").child("topfiles")
+        conchNews = conchTopfiles.child("NEWS")
+        conchHeader = "Twisted Conch 3.4.5 (2009-12-01)"
+
+        aggregateNews = project.child("NEWS")
+
+        self.assertEqual(
+            builds,
+            [(conchTopfiles, conchNews, conchHeader),
+             (conchTopfiles, aggregateNews, conchHeader),
+             (coreTopfiles, coreNews, coreHeader),
+             (coreTopfiles, aggregateNews, coreHeader)])
+
+
+    def test_buildAllAggregate(self):
+        """
+        L{NewsBuilder.buildAll} aggregates I{NEWS} information into the top
+        files, only deleting fragments once it's done.
+        """
+        builder = NewsBuilder()
+        project = createFakeTwistedProject(self.mktemp())
+        svnCommit(project, repositoryPath=self.mktemp())
+        strategy = TwistedBuildStrategy(newsBuilder=builder)
+        strategy.buildAll(project)
+
+        aggregateNews = project.child("NEWS")
+
+        aggregateContent = aggregateNews.getContent()
+        self.assertIn("Third feature addition", aggregateContent)
+        self.assertIn("Fixed that bug", aggregateContent)
+        self.assertIn("Old boring stuff from the past", aggregateContent)
+
+
+    def test_removeNEWSfragments(self):
+        """
+        L{TwistedBuildStrategy.buildALL} removes all the NEWS fragments after
+        the build process, using the C{svn} C{rm} command.
+        """
+        builder = NewsBuilder()
+        project = createFakeTwistedProject(self.mktemp())
+        svnCommit(project, repositoryPath=self.mktemp())
+        strategy = TwistedBuildStrategy(newsBuilder=builder)
+        strategy.buildAll(project)
+
+        self.assertEqual(5, len(project.children()))
+        output = runCommand(["svn", "status", project.path])
+        removed = [line for line in output.splitlines()
+                   if line.startswith("D ")]
+        self.assertEqual(3, len(removed))
+
+
+    def test_checkSVN(self):
+        """
+        L{TwistedBuildStrategy.buildAll} raises L{NotWorkingDirectory} when the
+        given path is not a SVN checkout.
+        """
+        strategy = TwistedBuildStrategy(newsBuilder=object())
+        self.assertRaises(
+            NotWorkingDirectory, strategy.buildAll, createFakeTwistedProject(self.mktemp()))
 
 
 

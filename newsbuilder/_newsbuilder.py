@@ -243,12 +243,6 @@ class NewsBuilder(object):
         'http://twistedmatrix.com/trac/ticket/<number>\n'
         '\n')
 
-    def _today(self):
-        """
-        Return today's date as a string in YYYY-MM-DD format.
-        """
-        return date.today().strftime('%Y-%m-%d')
-
 
     def _findChanges(self, path, ticketType):
         """
@@ -431,6 +425,50 @@ class NewsBuilder(object):
         return name
 
 
+    def _changeNewsVersion(self, news, name, oldVersion, newVersion, today):
+        """
+        Change all references to the current version number in a NEWS file to
+        refer to C{newVersion} instead.
+
+        @param news: The NEWS file to change.
+        @type news: L{FilePath}
+        @param name: The name of the project to change.
+        @type name: C{str}
+        @param oldVersion: The old version of the project.
+        @type oldVersion: L{Version}
+        @param newVersion: The new version of the project.
+        @type newVersion: L{Version}
+        @param today: A YYYY-MM-DD string representing today's date.
+        @type today: C{str}
+        """
+        newHeader = self._formatHeader(
+            "Twisted %s %s (%s)" % (name, newVersion.base(), today))
+        expectedHeaderRegex = re.compile(
+            r"Twisted %s %s \(\d{4}-\d\d-\d\d\)\n=+\n\n" % (
+                re.escape(name), re.escape(oldVersion.base())))
+        oldNews = news.getContent()
+        match = expectedHeaderRegex.search(oldNews)
+        if match:
+            oldHeader = match.group()
+            replaceInFile(news.path, {oldHeader: newHeader})
+
+
+
+class TwistedBuildStrategy(object):
+    """
+    A strategy for using newsbuilder in the Twisted project.
+    """
+    def __init__(self, newsBuilder):
+        self.newsBuilder = newsBuilder
+
+
+    def _today(self):
+        """
+        Return today's date as a string in YYYY-MM-DD format.
+        """
+        return date.today().strftime('%Y-%m-%d')
+
+
     def _iterProjects(self, baseDirectory):
         """
         Iterate through the Twisted projects in C{baseDirectory}, yielding
@@ -457,7 +495,7 @@ class NewsBuilder(object):
 
         for project in projects:
             topfiles = project.directory.child("topfiles")
-            name = self._getNewsName(project)
+            name = self.newsBuilder._getNewsName(project)
             version = project.getVersion()
             yield topfiles, name, version
 
@@ -485,40 +523,12 @@ class NewsBuilder(object):
             # We first build for the subproject
             news = topfiles.child("NEWS")
             header = "Twisted %s %s (%s)" % (name, version.base(), today)
-            self.build(topfiles, news, header)
+            self.newsBuilder.build(topfiles, news, header)
             # Then for the global NEWS file
             news = baseDirectory.child("NEWS")
-            self.build(topfiles, news, header)
+            self.newsBuilder.build(topfiles, news, header)
             # Finally, delete the fragments
-            self._deleteFragments(topfiles)
-
-
-    def _changeNewsVersion(self, news, name, oldVersion, newVersion, today):
-        """
-        Change all references to the current version number in a NEWS file to
-        refer to C{newVersion} instead.
-
-        @param news: The NEWS file to change.
-        @type news: L{FilePath}
-        @param name: The name of the project to change.
-        @type name: C{str}
-        @param oldVersion: The old version of the project.
-        @type oldVersion: L{Version}
-        @param newVersion: The new version of the project.
-        @type newVersion: L{Version}
-        @param today: A YYYY-MM-DD string representing today's date.
-        @type today: C{str}
-        """
-        newHeader = self._formatHeader(
-            "Twisted %s %s (%s)" % (name, newVersion.base(), today))
-        expectedHeaderRegex = re.compile(
-            r"Twisted %s %s \(\d{4}-\d\d-\d\d\)\n=+\n\n" % (
-                re.escape(name), re.escape(oldVersion.base())))
-        oldNews = news.getContent()
-        match = expectedHeaderRegex.search(oldNews)
-        if match:
-            oldHeader = match.group()
-            replaceInFile(news.path, {oldHeader: newHeader})
+            self.newsBuilder._deleteFragments(topfiles)
 
 
 
