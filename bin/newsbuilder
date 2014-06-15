@@ -12,6 +12,6 @@ except ImportError:
     sys.exc_clear()
 sys.path.remove(extra)
 
-from newsbuilder import NewsBuilder
+from newsbuilder import NewsBuilderScript
 
-NewsBuilder().main(sys.argv[1:])
+NewsBuilderScript().main(sys.argv[1:])

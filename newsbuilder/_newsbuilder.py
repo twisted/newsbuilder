@@ -16,6 +16,7 @@ import textwrap
 from datetime import date
 import re
 import os
+import sys
 
 from subprocess import PIPE, STDOUT, Popen
 
@@ -198,17 +199,6 @@ def replaceInFile(filename, oldToNew):
     f.close()
     os.rename(filename + '.new', filename)
     os.unlink(filename + '.bak')
-
-
-
-class NewsBuilderOptions(usage.Options):
-    """
-    """
-    def parseArgs(self, repositoryPath, version):
-        """
-        """
-        self['repositoryPath'] = FilePath(repositoryPath)
-        self['version'] = version
 
 
 
@@ -531,22 +521,52 @@ class NewsBuilder(object):
             replaceInFile(news.path, {oldHeader: newHeader})
 
 
-    def main(self, args):
-        """
-        Build all news files.
-
-        @param args: The command line arguments to process.  This must contain
-            one string, the path to the base of the Twisted checkout for which
-            to build the news.
-        @type args: C{list} of C{str}
-        """
-        options = NewsBuilderOptions()
-        options.parseOptions(args)
-        self.buildAll(FilePath(args[0]))
-
-
 
 class NotWorkingDirectory(Exception):
     """
     Raised when a directory does not appear to be an SVN working directory.
     """
+
+
+
+class NewsBuilderOptions(usage.Options):
+    """
+    """
+    def parseArgs(self, repositoryPath):
+        """
+        """
+        self['repositoryPath'] = FilePath(repositoryPath)
+
+
+
+class NewsBuilderScript(object):
+    """
+    The entry point for the I{newsbuilder} script.
+    """
+    def __init__(self, newsBuilder=None, stderr=None):
+        """
+        @param newsBuilder: A L{NewsBuilder} instance.
+        @param stderr: A file to which stderr messages will be written.
+        """
+        if newsBuilder is None:
+            newsBuilder = NewsBuilder()
+        self.newsBuilder = newsBuilder
+
+        if stderr is None:
+            stderr = sys.stderr
+        self.stderr = stderr
+
+
+    def main(self, args):
+        """
+        The entry point for the I{build-news} script.
+        """
+        options = NewsBuilderOptions()
+        try:
+            options.parseOptions(args)
+        except usage.UsageError as e:
+            message = u'ERROR: {}\n'.format(e.message)
+            self.stderr.write(message.encode('utf-8'))
+            raise SystemExit(1)
+
+        self.newsBuilder.buildAll(options['repositoryPath'])

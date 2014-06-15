@@ -9,7 +9,7 @@ from ._newsbuilder import (
     findTwistedProjects, replaceInFile,
     replaceProjectVersion, Project, generateVersionFileData,
     CommandFailed, runCommand, NewsBuilder, NotWorkingDirectory,
-    NewsBuilderOptions)
+    NewsBuilderOptions, NewsBuilderScript)
 
 __all__ = [
     'findTwistedProjects',
@@ -22,6 +22,7 @@ __all__ = [
     'NewsBuilder',
     'NotWorkingDirectory',
     'NewsBuilderOptions',
+    'NewsBuilderScript',
     '__version__',
 ]
 
