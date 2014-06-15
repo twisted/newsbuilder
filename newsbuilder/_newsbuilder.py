@@ -15,13 +15,13 @@ which must run on multiple platforms (eg the setup.py script).
 import textwrap
 from datetime import date
 import re
-import sys
 import os
 
 from subprocess import PIPE, STDOUT, Popen
 
 from twisted.python.filepath import FilePath
 from twisted.python.compat import execfile
+from twisted.python import usage
 
 
 def runCommand(args):
@@ -198,6 +198,17 @@ def replaceInFile(filename, oldToNew):
     f.close()
     os.rename(filename + '.new', filename)
     os.unlink(filename + '.bak')
+
+
+
+class NewsBuilderOptions(usage.Options):
+    """
+    """
+    def parseArgs(self, repositoryPath, version):
+        """
+        """
+        self['repositoryPath'] = FilePath(repositoryPath)
+        self['version'] = version
 
 
 
@@ -529,9 +540,8 @@ class NewsBuilder(object):
             to build the news.
         @type args: C{list} of C{str}
         """
-        if len(args) != 1:
-            sys.exit("Must specify one argument: the path to the "
-                     "Twisted checkout")
+        options = NewsBuilderOptions()
+        options.parseOptions(args)
         self.buildAll(FilePath(args[0]))
 
 

@@ -26,7 +26,7 @@ from twisted.python.versions import Version
 from newsbuilder import (
     findTwistedProjects, replaceInFile,
     replaceProjectVersion, Project, generateVersionFileData,
-    runCommand, NewsBuilder, NotWorkingDirectory)
+    runCommand, NewsBuilder, NotWorkingDirectory, NewsBuilderOptions)
 
 if os.name != 'posix':
     skip = "Release toolchain only supported on POSIX."
@@ -808,3 +808,19 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         """
         self.assertRaises(
             NotWorkingDirectory, self.builder.buildAll, self.project)
+
+
+
+class NewsBuilderOptionsTests(TestCase):
+    def test_parseArgs(self):
+        """
+        L{NewsbuilderOptions} accepts a repo path and a version.
+        """
+        expectedPath = b'/path/to/repo'
+        expectedVersion = b'1.2.3pre4'
+        options = NewsBuilderOptions()
+        options.parseOptions([expectedPath, expectedVersion])
+        self.assertEqual(
+            (FilePath(expectedPath), expectedVersion),
+            (options['repositoryPath'], options['version'])
+        )
