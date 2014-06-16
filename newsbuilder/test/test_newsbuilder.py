@@ -26,7 +26,7 @@ from twisted.python.versions import Version
 from newsbuilder import (
     findTwistedProjects, replaceInFile,
     replaceProjectVersion, Project, generateVersionFileData,
-    runCommand, NewsBuilder, NotWorkingDirectory)
+    runCommand, NewsBuilder, NotWorkingDirectory, TwistedBuildStrategy)
 
 if os.name != 'posix':
     skip = "Release toolchain only supported on POSIX."
@@ -807,3 +807,105 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         """
         self.assertRaises(
             NotWorkingDirectory, self.builder.buildAll, self.project)
+
+
+
+class TwistedBuildStrategyTests(TestCase):
+    """
+    Tests for L{TwistedBuildStrategy}.
+    """
+    def test_today(self):
+        """
+        L{TwistedBuildStrategy._today} returns today's date in YYYY-MM-DD form.
+        """
+        strategy = TwistedBuildStrategy(newsBuilder=object())
+        self.assertEqual(
+            strategy._today(), date.today().strftime('%Y-%m-%d'))
+
+
+    def test_buildAll(self):
+        """
+        L{TwistedBuildStrategy.buildAll} calls L{NewsBuilder.build} once for each
+        subproject, passing that subproject's I{topfiles} directory as C{path},
+        the I{NEWS} file in that directory as C{output}, and the subproject's
+        name as C{header}, and then again for each subproject with the
+        top-level I{NEWS} file for C{output}. Blacklisted subprojects are
+        skipped.
+        """
+        builds = []
+        builder = NewsBuilder()
+        builder.build = lambda path, output, header: builds.append((
+            path, output, header))
+
+        project = createFakeTwistedProject(FilePath(self.mktemp()))
+        svnCommit(project, repository=FilePath(self.mktemp()))
+        strategy = TwistedBuildStrategy(newsBuilder=builder)
+        strategy._today = lambda: '2009-12-01'
+        strategy.buildAll(project)
+
+        coreTopfiles = project.child("topfiles")
+        coreNews = coreTopfiles.child("NEWS")
+        coreHeader = "Twisted Core 1.2.3 (2009-12-01)"
+
+        conchTopfiles = project.child("conch").child("topfiles")
+        conchNews = conchTopfiles.child("NEWS")
+        conchHeader = "Twisted Conch 3.4.5 (2009-12-01)"
+
+        aggregateNews = project.child("NEWS")
+
+        self.assertEqual(
+            builds,
+            [(conchTopfiles, conchNews, conchHeader),
+             (conchTopfiles, aggregateNews, conchHeader),
+             (coreTopfiles, coreNews, coreHeader),
+             (coreTopfiles, aggregateNews, coreHeader)])
+
+
+    def test_buildAllAggregate(self):
+        """
+        L{NewsBuilder.buildAll} aggregates I{NEWS} information into the top
+        files, only deleting fragments once it's done.
+        """
+        builder = NewsBuilder()
+        project = createFakeTwistedProject(FilePath(self.mktemp()))
+        svnCommit(project, repository=FilePath(self.mktemp()))
+        strategy = TwistedBuildStrategy(newsBuilder=builder)
+        strategy.buildAll(project)
+
+        aggregateNews = project.child("NEWS")
+
+        aggregateContent = aggregateNews.getContent()
+        self.assertIn("Third feature addition", aggregateContent)
+        self.assertIn("Fixed that bug", aggregateContent)
+        self.assertIn("Old boring stuff from the past", aggregateContent)
+
+
+    def test_removeNEWSfragments(self):
+        """
+        L{TwistedBuildStrategy.buildALL} removes all the NEWS fragments after
+        the build process, using the C{svn} C{rm} command.
+        """
+        builder = NewsBuilder()
+        project = createFakeTwistedProject(FilePath(self.mktemp()))
+        svnCommit(project, repository=FilePath(self.mktemp()))
+        strategy = TwistedBuildStrategy(newsBuilder=builder)
+        strategy.buildAll(project)
+
+        self.assertEqual(5, len(project.children()))
+        output = runCommand(["svn", "status", project.path])
+        removed = [line for line in output.splitlines()
+                   if line.startswith("D ")]
+        self.assertEqual(3, len(removed))
+
+
+    def test_checkSVN(self):
+        """
+        L{TwistedBuildStrategy.buildAll} raises L{NotWorkingDirectory} when the
+        given path is not a SVN checkout.
+        """
+        strategy = TwistedBuildStrategy(newsBuilder=object())
+        self.assertRaises(
+            NotWorkingDirectory,
+            strategy.buildAll,
+            createFakeTwistedProject(FilePath(self.mktemp()))
+        )

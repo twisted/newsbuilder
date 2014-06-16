@@ -543,3 +543,81 @@ class NotWorkingDirectory(Exception):
     """
     Raised when a directory does not appear to be an SVN working directory.
     """
+
+
+
+class TwistedBuildStrategy(object):
+    """
+    A strategy for using newsbuilder in the Twisted project.
+    """
+    def __init__(self, newsBuilder):
+        self.newsBuilder = newsBuilder
+
+
+    def _today(self):
+        """
+        Return today's date as a string in YYYY-MM-DD format.
+        """
+        return date.today().strftime('%Y-%m-%d')
+
+
+    def _iterProjects(self, baseDirectory):
+        """
+        Iterate through the Twisted projects in C{baseDirectory}, yielding
+        everything we need to know to build news for them.
+
+        Yields C{topfiles}, C{name}, C{version}, for each sub-project in
+        reverse-alphabetical order. C{topfile} is the L{FilePath} for the
+        topfiles directory, C{name} is the nice name of the project (as should
+        appear in the NEWS file), C{version} is the current version string for
+        that project.
+
+        @param baseDirectory: A L{FilePath} representing the root directory
+            beneath which to find Twisted projects for which to generate
+            news (see L{findTwistedProjects}).
+        @type baseDirectory: L{FilePath}
+        """
+        # Get all the subprojects to generate news for
+        projects = findTwistedProjects(baseDirectory)
+        # And order them alphabetically for ease of reading
+        projects.sort(key=lambda proj: proj.directory.path)
+        # And generate them backwards since we write news by prepending to
+        # files.
+        projects.reverse()
+
+        for project in projects:
+            topfiles = project.directory.child("topfiles")
+            name = self.newsBuilder._getNewsName(project)
+            version = project.getVersion()
+            yield topfiles, name, version
+
+
+    def buildAll(self, baseDirectory):
+        """
+        Find all of the Twisted subprojects beneath C{baseDirectory} and update
+        their news files from the ticket change description files in their
+        I{topfiles} directories and update the news file in C{baseDirectory}
+        with all of the news.
+
+        @param baseDirectory: A L{FilePath} representing the root directory
+            beneath which to find Twisted projects for which to generate
+            news (see L{findTwistedProjects}).
+        """
+        try:
+            runCommand(["svn", "info", baseDirectory.path])
+        except CommandFailed:
+            raise NotWorkingDirectory(
+                "%s does not appear to be an SVN working directory."
+                % (baseDirectory.path,))
+
+        today = self._today()
+        for topfiles, name, version in self._iterProjects(baseDirectory):
+            # We first build for the subproject
+            news = topfiles.child("NEWS")
+            header = "Twisted %s %s (%s)" % (name, version.base(), today)
+            self.newsBuilder.build(topfiles, news, header)
+            # Then for the global NEWS file
+            news = baseDirectory.child("NEWS")
+            self.newsBuilder.build(topfiles, news, header)
+            # Finally, delete the fragments
+            self.newsBuilder._deleteFragments(topfiles)
