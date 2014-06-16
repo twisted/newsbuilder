@@ -51,40 +51,42 @@ def genVersion(*args, **kwargs):
 
 
 
+def createStructure(root, dirDict):
+    """
+    Create a set of directories and files given a dict defining their
+    structure.
+
+    @param root: The directory in which to create the structure.  It must
+        already exist.
+    @type root: L{FilePath}
+
+    @param dirDict: The dict defining the structure. Keys should be strings
+        naming files, values should be strings describing file contents OR
+        dicts describing subdirectories.  All files are written in binary
+        mode.  Any string values are assumed to describe text files and
+        will have their newlines replaced with the platform-native newline
+        convention.  For example::
+
+            {"foofile": "foocontents",
+             "bardir": {"barfile": "bar\ncontents"}}
+    @type dirDict: C{dict}
+    """
+    for x in dirDict:
+        child = root.child(x)
+        if isinstance(dirDict[x], dict):
+            child.createDirectory()
+            createStructure(child, dirDict[x])
+        else:
+            child.setContent(dirDict[x].replace('\n', os.linesep))
+
+
+
 class StructureAssertingMixin(object):
     """
     A mixin for L{TestCase} subclasses which provides some methods for
     asserting the structure and contents of directories and files on the
     filesystem.
     """
-    def createStructure(self, root, dirDict):
-        """
-        Create a set of directories and files given a dict defining their
-        structure.
-
-        @param root: The directory in which to create the structure.  It must
-            already exist.
-        @type root: L{FilePath}
-
-        @param dirDict: The dict defining the structure. Keys should be strings
-            naming files, values should be strings describing file contents OR
-            dicts describing subdirectories.  All files are written in binary
-            mode.  Any string values are assumed to describe text files and
-            will have their newlines replaced with the platform-native newline
-            convention.  For example::
-
-                {"foofile": "foocontents",
-                 "bardir": {"barfile": "bar\ncontents"}}
-        @type dirDict: C{dict}
-        """
-        for x in dirDict:
-            child = root.child(x)
-            if isinstance(dirDict[x], dict):
-                child.createDirectory()
-                self.createStructure(child, dirDict[x])
-            else:
-                child.setContent(dirDict[x].replace('\n', os.linesep))
-
     def assertStructure(self, root, dirDict):
         """
         Assert that a directory is equivalent to one described by a dict.
@@ -315,7 +317,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         self.project.createDirectory()
 
         self.existingText = 'Here is stuff which was present previously.\n'
-        self.createStructure(
+        createStructure(
             self.project, {
                 'NEWS': self.existingText,
                 '5.feature': 'We now support the web.\n',
@@ -530,7 +532,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         """
         project = FilePath(self.mktemp()).child("twisted")
         project.makedirs()
-        self.createStructure(project, {'NEWS': self.existingText})
+        createStructure(project, {'NEWS': self.existingText})
 
         self.builder.build(
             project, project.child('NEWS'),
@@ -678,7 +680,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         """
         project = FilePath(self.mktemp()).child("twisted")
         project.makedirs()
-        self.createStructure(
+        createStructure(
             project, {
                 'NEWS': 'Old boring stuff from the past.\n',
                 '_version.py': genVersion("twisted", 1, 2, 3),
