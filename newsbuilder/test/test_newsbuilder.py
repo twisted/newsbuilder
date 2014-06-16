@@ -881,8 +881,8 @@ class NewsBuilderScriptTests(TestCase):
 
     def test_mainCallsBuildAll(self):
         """
-        L{BuildNewsScript.main} calls C{self.newsBuilder} with the supplied
-        repository directory path.
+        L{BuildNewsScript.main} calls C{self.newsBuilder.buildAll} with the
+        supplied repository directory path.
         """
         expectedPath = b'/foo/bar/baz'
         fakeNewsBuilder = FakeNewsBuilder()
