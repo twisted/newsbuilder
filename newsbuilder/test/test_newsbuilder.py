@@ -28,7 +28,7 @@ from newsbuilder import (
     findTwistedProjects, replaceInFile,
     replaceProjectVersion, Project, generateVersionFileData,
     runCommand, NewsBuilder, NotWorkingDirectory,
-    NewsBuilderOptions, NewsBuilderScript)
+    NewsBuilderOptions, NewsBuilderScript, __version__)
 
 if os.name != 'posix':
     skip = "Release toolchain only supported on POSIX."
@@ -851,6 +851,25 @@ class NewsBuilderScriptTests(TestCase):
     """
     Tests for L{NewsBuilderScript}.
     """
+    def test_version(self):
+        """
+        L{NewsbuilderScript.main} accepts a I{--version} option which
+        causes the script to print the current version string to stdout and exit
+        with status C{0}.
+        """
+        stdout = io.BytesIO()
+        options = NewsBuilderOptions(stdout=stdout)
+        error = self.assertRaises(
+            SystemExit,
+            options.parseOptions,
+            ['--version']
+        )
+        self.assertEqual(
+            (0, __version__ + '\n'),
+            (error.code, stdout.getvalue())
+        )
+
+
     def test_argsTooFew(self):
         """
         L{BuildNewsScript.main} raises L{SystemExit} when less than 1 argument

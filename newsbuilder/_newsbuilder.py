@@ -536,8 +536,34 @@ class NewsBuilderOptions(usage.Options):
     """
     Command line options for L{NewsBuilderScript}.
     """
+    def __init__(self,  stdout=None, stderr=None):
+        """
+        @param stdout: A file to which stdout messages will be written.
+        @param stderr: A file to which stderr messages will be written.
+        """
+        usage.Options.__init__(self)
+        if stdout is None:
+            stdout = sys.stdout
+        self.stdout = stdout
+
+        if stderr is None:
+            stderr = sys.stderr
+        self.stderr = stderr
+
+
+    def opt_version(self):
+        """
+        Print a version string to I{stdout} and exit with status C{0}.
+        """
+        from . import __version__
+        self.stdout.write(__version__.encode('utf-8') + b'\n')
+        raise SystemExit(0)
+
+
     def parseArgs(self, repositoryPath):
         """
+        Handle a repository path supplied as a positional argument and store it
+        as a L{FilePath}.
         """
         self['repositoryPath'] = FilePath(repositoryPath)
 
@@ -547,14 +573,19 @@ class NewsBuilderScript(object):
     """
     The entry point for the I{newsbuilder} script.
     """
-    def __init__(self, newsBuilder=None, stderr=None):
+    def __init__(self, newsBuilder=None, stdout=None, stderr=None):
         """
         @param newsBuilder: A L{NewsBuilder} instance.
+        @param stdout: A file to which stdout messages will be written.
         @param stderr: A file to which stderr messages will be written.
         """
         if newsBuilder is None:
             newsBuilder = NewsBuilder()
         self.newsBuilder = newsBuilder
+
+        if stdout is None:
+            stdout = sys.stdout
+        self.stdout = stdout
 
         if stderr is None:
             stderr = sys.stderr
@@ -565,7 +596,7 @@ class NewsBuilderScript(object):
         """
         The entry point for the I{newsbuilder} script.
         """
-        options = NewsBuilderOptions()
+        options = NewsBuilderOptions(stdout=self.stdout, stderr=self.stderr)
         try:
             options.parseOptions(args)
         except usage.UsageError as e:
