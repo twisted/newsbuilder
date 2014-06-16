@@ -285,6 +285,20 @@ class UtilityTest(TestCase):
 
 
 
+def svnCommit(project, repository):
+    """
+    Make the C{project} directory a valid subversion directory with all
+    files committed to C{repository}.
+    """
+    runCommand(["svnadmin", "create", repository.path])
+    runCommand(["svn", "checkout", "file://" + repository.path,
+                project.path])
+
+    runCommand(["svn", "add"] + glob.glob(project.path + "/*"))
+    runCommand(["svn", "commit", project.path, "-m", "yay"])
+
+
+
 class NewsBuilderTests(TestCase, StructureAssertingMixin):
     """
     Tests for L{NewsBuilder}.
@@ -320,24 +334,6 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
                 '35.misc': '',
                 '40.doc': 'foo.bar.Baz.quux',
                 '41.doc': 'writing Foo servers'})
-
-
-    def svnCommit(self, project=None):
-        """
-        Make the C{project} directory a valid subversion directory with all
-        files committed.
-        """
-        if project is None:
-            project = self.project
-        repositoryPath = self.mktemp()
-        repository = FilePath(repositoryPath)
-
-        runCommand(["svnadmin", "create", repository.path])
-        runCommand(["svn", "checkout", "file://" + repository.path,
-                    project.path])
-
-        runCommand(["svn", "add"] + glob.glob(project.path + "/*"))
-        runCommand(["svn", "commit", project.path, "-m", "yay"])
 
 
     def test_today(self):
@@ -714,7 +710,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         builder._today = lambda: '2009-12-01'
 
         project = self.createFakeTwistedProject()
-        self.svnCommit(project)
+        svnCommit(project, repository=FilePath(self.mktemp()))
         builder.buildAll(project)
 
         coreTopfiles = project.child("topfiles")
@@ -742,7 +738,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         """
         builder = NewsBuilder()
         project = self.createFakeTwistedProject()
-        self.svnCommit(project)
+        svnCommit(project, repository=FilePath(self.mktemp()))
         builder.buildAll(project)
 
         aggregateNews = project.child("NEWS")
@@ -761,7 +757,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         builder = NewsBuilder()
         builder._today = lambda: '2009-12-01'
         project = self.createFakeTwistedProject()
-        self.svnCommit(project)
+        svnCommit(project, repository=FilePath(self.mktemp()))
         builder.buildAll(project)
         newVersion = Version('TEMPLATE', 7, 7, 14)
         coreNews = project.child('topfiles').child('NEWS')
@@ -791,7 +787,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         """
         builder = NewsBuilder()
         project = self.createFakeTwistedProject()
-        self.svnCommit(project)
+        svnCommit(project, repository=FilePath(self.mktemp()))
         builder.buildAll(project)
 
         self.assertEqual(5, len(project.children()))
