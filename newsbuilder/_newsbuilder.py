@@ -22,6 +22,7 @@ from subprocess import PIPE, STDOUT, Popen
 
 from twisted.python.filepath import FilePath
 from twisted.python.compat import execfile
+from twisted.python import usage
 
 # The offset between a year and the corresponding major version number.
 VERSION_OFFSET = 2000
@@ -523,23 +524,84 @@ class NewsBuilder(object):
             replaceInFile(news.path, {oldHeader: newHeader})
 
 
-    def main(self, args):
-        """
-        Build all news files.
-
-        @param args: The command line arguments to process.  This must contain
-            one string, the path to the base of the Twisted checkout for which
-            to build the news.
-        @type args: C{list} of C{str}
-        """
-        if len(args) != 1:
-            sys.exit("Must specify one argument: the path to the "
-                     "Twisted checkout")
-        self.buildAll(FilePath(args[0]))
-
-
 
 class NotWorkingDirectory(Exception):
     """
     Raised when a directory does not appear to be an SVN working directory.
     """
+
+
+
+class NewsBuilderOptions(usage.Options):
+    """
+    Command line options for L{NewsBuilderScript}.
+    """
+    def __init__(self,  stdout=None, stderr=None):
+        """
+        @param stdout: A file to which stdout messages will be written.
+        @param stderr: A file to which stderr messages will be written.
+        """
+        usage.Options.__init__(self)
+        if stdout is None:
+            stdout = sys.stdout
+        self.stdout = stdout
+
+        if stderr is None:
+            stderr = sys.stderr
+        self.stderr = stderr
+
+
+    def opt_version(self):
+        """
+        Print a version string to I{stdout} and exit with status C{0}.
+        """
+        from . import __version__
+        self.stdout.write(__version__.encode('utf-8') + b'\n')
+        raise SystemExit(0)
+
+
+    def parseArgs(self, repositoryPath):
+        """
+        Handle a repository path supplied as a positional argument and store it
+        as a L{FilePath}.
+        """
+        self['repositoryPath'] = FilePath(repositoryPath)
+
+
+
+class NewsBuilderScript(object):
+    """
+    The entry point for the I{newsbuilder} script.
+    """
+    def __init__(self, newsBuilder=None, stdout=None, stderr=None):
+        """
+        @param newsBuilder: A L{NewsBuilder} instance.
+        @param stdout: A file to which stdout messages will be written.
+        @param stderr: A file to which stderr messages will be written.
+        """
+        if newsBuilder is None:
+            newsBuilder = NewsBuilder()
+        self.newsBuilder = newsBuilder
+
+        if stdout is None:
+            stdout = sys.stdout
+        self.stdout = stdout
+
+        if stderr is None:
+            stderr = sys.stderr
+        self.stderr = stderr
+
+
+    def main(self, args):
+        """
+        The entry point for the I{newsbuilder} script.
+        """
+        options = NewsBuilderOptions(stdout=self.stdout, stderr=self.stderr)
+        try:
+            options.parseOptions(args)
+        except usage.UsageError as e:
+            message = u'ERROR: {}\n'.format(e.message)
+            self.stderr.write(message.encode('utf-8'))
+            raise SystemExit(1)
+
+        self.newsBuilder.buildAll(options['repositoryPath'])
