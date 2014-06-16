@@ -301,6 +301,29 @@ def svnCommit(project, repository):
 
 
 
+def createFakeTwistedProject(project):
+    """
+    Create a fake-looking Twisted project to build from.
+    """
+    project = project.child("twisted")
+    project.makedirs()
+    createStructure(
+        project, {
+            'NEWS': 'Old boring stuff from the past.\n',
+            '_version.py': genVersion("twisted", 1, 2, 3),
+            'topfiles': {
+                'NEWS': 'Old core news.\n',
+                '3.feature': 'Third feature addition.\n',
+                '5.misc': ''},
+            'conch': {
+                '_version.py': genVersion("twisted.conch", 3, 4, 5),
+                'topfiles': {
+                    'NEWS': 'Old conch news.\n',
+                    '7.bugfix': 'Fixed that bug.\n'}}})
+    return project
+
+
+
 class NewsBuilderTests(TestCase, StructureAssertingMixin):
     """
     Tests for L{NewsBuilder}.
@@ -674,28 +697,6 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
             'Here is stuff which was present previously.\n')
 
 
-    def createFakeTwistedProject(self):
-        """
-        Create a fake-looking Twisted project to build from.
-        """
-        project = FilePath(self.mktemp()).child("twisted")
-        project.makedirs()
-        createStructure(
-            project, {
-                'NEWS': 'Old boring stuff from the past.\n',
-                '_version.py': genVersion("twisted", 1, 2, 3),
-                'topfiles': {
-                    'NEWS': 'Old core news.\n',
-                    '3.feature': 'Third feature addition.\n',
-                    '5.misc': ''},
-                'conch': {
-                    '_version.py': genVersion("twisted.conch", 3, 4, 5),
-                    'topfiles': {
-                        'NEWS': 'Old conch news.\n',
-                        '7.bugfix': 'Fixed that bug.\n'}}})
-        return project
-
-
     def test_buildAll(self):
         """
         L{NewsBuilder.buildAll} calls L{NewsBuilder.build} once for each
@@ -711,7 +712,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
             path, output, header))
         builder._today = lambda: '2009-12-01'
 
-        project = self.createFakeTwistedProject()
+        project = createFakeTwistedProject(FilePath(self.mktemp()))
         svnCommit(project, repository=FilePath(self.mktemp()))
         builder.buildAll(project)
 
@@ -739,7 +740,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         files, only deleting fragments once it's done.
         """
         builder = NewsBuilder()
-        project = self.createFakeTwistedProject()
+        project = createFakeTwistedProject(FilePath(self.mktemp()))
         svnCommit(project, repository=FilePath(self.mktemp()))
         builder.buildAll(project)
 
@@ -758,7 +759,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         """
         builder = NewsBuilder()
         builder._today = lambda: '2009-12-01'
-        project = self.createFakeTwistedProject()
+        project = createFakeTwistedProject(FilePath(self.mktemp()))
         svnCommit(project, repository=FilePath(self.mktemp()))
         builder.buildAll(project)
         newVersion = Version('TEMPLATE', 7, 7, 14)
@@ -788,7 +789,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         process, using the C{svn} C{rm} command.
         """
         builder = NewsBuilder()
-        project = self.createFakeTwistedProject()
+        project = createFakeTwistedProject(FilePath(self.mktemp()))
         svnCommit(project, repository=FilePath(self.mktemp()))
         builder.buildAll(project)
 
