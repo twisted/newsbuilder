@@ -524,21 +524,6 @@ class NewsBuilder(object):
             replaceInFile(news.path, {oldHeader: newHeader})
 
 
-    def main(self, args):
-        """
-        Build all news files.
-
-        @param args: The command line arguments to process.  This must contain
-            one string, the path to the base of the Twisted checkout for which
-            to build the news.
-        @type args: C{list} of C{str}
-        """
-        if len(args) != 1:
-            sys.exit("Must specify one argument: the path to the "
-                     "Twisted checkout")
-        self.buildAll(FilePath(args[0]))
-
-
 
 class NotWorkingDirectory(Exception):
     """
