@@ -82,6 +82,49 @@ def _changeVersionInFile(old, new, filename):
 
 
 
+def _formatHeader(header):
+    """
+    Format a header for a NEWS file.
+
+    A header is a title with '=' signs underlining it.
+
+    @param header: The header string to format.
+    @type header: C{str}
+    @return: A C{str} containing C{header}.
+    """
+    return header + '\n' + '=' * len(header) + '\n\n'
+
+
+
+def _changeNewsVersion(news, name, oldVersion, newVersion, today):
+    """
+    Change all references to the current version number in a NEWS file to
+    refer to C{newVersion} instead.
+
+    @param news: The NEWS file to change.
+    @type news: L{FilePath}
+    @param name: The name of the project to change.
+    @type name: C{str}
+    @param oldVersion: The old version of the project.
+    @type oldVersion: L{Version}
+    @param newVersion: The new version of the project.
+    @type newVersion: L{Version}
+    @param today: A YYYY-MM-DD string representing today's date.
+    @type today: C{str}
+    """
+    newHeader = _formatHeader(
+        "Twisted %s %s (%s)" % (name, newVersion.base(), today))
+    expectedHeaderRegex = re.compile(
+        r"Twisted %s %s \(\d{4}-\d\d-\d\d\)\n=+\n\n" % (
+            re.escape(name), re.escape(oldVersion.base())))
+    oldNews = news.getContent()
+    match = expectedHeaderRegex.search(oldNews)
+    if match:
+        oldHeader = match.group()
+        replaceInFile(news.path, {oldHeader: newHeader})
+
+
+
 class Project(object):
     """
     A representation of a project that has a version.
@@ -279,19 +322,6 @@ class NewsBuilder(object):
         return results
 
 
-    def _formatHeader(self, header):
-        """
-        Format a header for a NEWS file.
-
-        A header is a title with '=' signs underlining it.
-
-        @param header: The header string to format.
-        @type header: C{str}
-        @return: A C{str} containing C{header}.
-        """
-        return header + '\n' + '=' * len(header) + '\n\n'
-
-
     def _writeHeader(self, fileObj, header):
         """
         Write a version header to the given file.
@@ -300,7 +330,7 @@ class NewsBuilder(object):
         @param header: The header to write to the file.
         @type header: C{str}
         """
-        fileObj.write(self._formatHeader(header))
+        fileObj.write(_formatHeader(header))
 
 
     def _writeSection(self, fileObj, header, tickets):
@@ -432,34 +462,6 @@ class NewsBuilder(object):
         if name == 'Twisted':
             name = 'Core'
         return name
-
-
-    def _changeNewsVersion(self, news, name, oldVersion, newVersion, today):
-        """
-        Change all references to the current version number in a NEWS file to
-        refer to C{newVersion} instead.
-
-        @param news: The NEWS file to change.
-        @type news: L{FilePath}
-        @param name: The name of the project to change.
-        @type name: C{str}
-        @param oldVersion: The old version of the project.
-        @type oldVersion: L{Version}
-        @param newVersion: The new version of the project.
-        @type newVersion: L{Version}
-        @param today: A YYYY-MM-DD string representing today's date.
-        @type today: C{str}
-        """
-        newHeader = self._formatHeader(
-            "Twisted %s %s (%s)" % (name, newVersion.base(), today))
-        expectedHeaderRegex = re.compile(
-            r"Twisted %s %s \(\d{4}-\d\d-\d\d\)\n=+\n\n" % (
-                re.escape(name), re.escape(oldVersion.base())))
-        oldNews = news.getContent()
-        match = expectedHeaderRegex.search(oldNews)
-        if match:
-            oldHeader = match.group()
-            replaceInFile(news.path, {oldHeader: newHeader})
 
 
 

@@ -30,6 +30,8 @@ from newsbuilder import (
     runCommand, NewsBuilder, NotWorkingDirectory, TwistedBuildStrategy,
     NewsBuilderOptions, NewsBuilderScript, __version__)
 
+from newsbuilder._newsbuilder import _changeNewsVersion
+
 if os.name != 'posix':
     skip = "Release toolchain only supported on POSIX."
 else:
@@ -286,6 +288,38 @@ class UtilityTest(TestCase):
         expected = expected.replace('2.0.0', '3.0.0')
         replaceInFile('release.replace', {'2.0.0': '3.0.0'})
         self.assertEqual(open('release.replace').read(), expected)
+
+
+
+    def test_changeVersionInNews(self):
+        """
+        L{_changeNewsVersion} gets the release date for a given version of a
+        project as a string.
+        """
+        builder = TwistedBuildStrategy(newsBuilder=NewsBuilder())
+        builder._today = lambda: '2009-12-01'
+        project = createFakeTwistedProject(FilePath(self.mktemp()))
+        svnCommit(project, repository=FilePath(self.mktemp()))
+        builder.buildAll(project)
+        newVersion = Version('TEMPLATE', 7, 7, 14)
+        coreNews = project.child('topfiles').child('NEWS')
+        # twisted 1.2.3 is the old version.
+        _changeNewsVersion(
+            coreNews, "Core", Version("twisted", 1, 2, 3),
+            newVersion, '2010-01-01')
+        expectedCore = (
+            'Twisted Core 7.7.14 (2010-01-01)\n'
+            '================================\n'
+            '\n'
+            'Features\n'
+            '--------\n'
+            ' - Third feature addition. (#3)\n'
+            '\n'
+            'Other\n'
+            '-----\n'
+            ' - #5\n\n\n')
+        self.assertEqual(
+            expectedCore + 'Old core news.\n', coreNews.getContent())
 
 
 
@@ -697,37 +731,6 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
             ' - #30, #35\n'
             '\n\n'
             'Here is stuff which was present previously.\n')
-
-
-    def test_changeVersionInNews(self):
-        """
-        L{NewsBuilder._changeVersions} gets the release date for a given
-        version of a project as a string.
-        """
-        builder = NewsBuilder()
-        builder._today = lambda: '2009-12-01'
-        project = createFakeTwistedProject(FilePath(self.mktemp()))
-        svnCommit(project, repository=FilePath(self.mktemp()))
-        builder.buildAll(project)
-        newVersion = Version('TEMPLATE', 7, 7, 14)
-        coreNews = project.child('topfiles').child('NEWS')
-        # twisted 1.2.3 is the old version.
-        builder._changeNewsVersion(
-            coreNews, "Core", Version("twisted", 1, 2, 3),
-            newVersion, '2010-01-01')
-        expectedCore = (
-            'Twisted Core 7.7.14 (2010-01-01)\n'
-            '================================\n'
-            '\n'
-            'Features\n'
-            '--------\n'
-            ' - Third feature addition. (#3)\n'
-            '\n'
-            'Other\n'
-            '-----\n'
-            ' - #5\n\n\n')
-        self.assertEqual(
-            expectedCore + 'Old core news.\n', coreNews.getContent())
 
 
 
