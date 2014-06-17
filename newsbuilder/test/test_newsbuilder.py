@@ -10,6 +10,7 @@ only ever performed on Linux.
 
 
 import glob
+import io
 import operator
 import os
 from StringIO import StringIO
@@ -26,7 +27,8 @@ from twisted.python.versions import Version
 from newsbuilder import (
     findTwistedProjects, replaceInFile,
     replaceProjectVersion, Project, generateVersionFileData,
-    runCommand, NewsBuilder, NotWorkingDirectory, TwistedBuildStrategy)
+    runCommand, NewsBuilder, NotWorkingDirectory, TwistedBuildStrategy,
+    NewsBuilderOptions, NewsBuilderScript, __version__)
 
 if os.name != 'posix':
     skip = "Release toolchain only supported on POSIX."
@@ -908,4 +910,105 @@ class TwistedBuildStrategyTests(TestCase):
             NotWorkingDirectory,
             strategy.buildAll,
             createFakeTwistedProject(FilePath(self.mktemp()))
+        )
+
+
+
+class FakeNewsBuilder(object):
+    """
+    A fake L{NewsBuilder} which records the arguments passed to its methods.
+    """
+    def __init__(self):
+        """
+        Initialise lists for recording method calls.
+        """
+        self.buildAllCalls = []
+
+
+    def buildAll(self, baseDirectory):
+        """
+        Record calls to L{NewsBuilder.buildAll}.
+        """
+        self.buildAllCalls.append(baseDirectory)
+
+
+
+class NewsBuilderOptionsTests(TestCase):
+    """
+    Tests for L{NewsBuilderOptions}.
+    """
+    def test_parseArgs(self):
+        """
+        L{NewsbuilderOptions} accepts a repo path and a version.
+        """
+        expectedPath = b'/path/to/repo'
+        options = NewsBuilderOptions()
+        options.parseOptions([expectedPath])
+        self.assertEqual(FilePath(expectedPath), options['repositoryPath'])
+
+
+
+class NewsBuilderScriptTests(TestCase):
+    """
+    Tests for L{NewsBuilderScript}.
+    """
+    def test_version(self):
+        """
+        L{NewsbuilderScript.main} accepts a I{--version} option which
+        causes the script to print the current version string to stdout and exit
+        with status C{0}.
+        """
+        stdout = io.BytesIO()
+        options = NewsBuilderOptions(stdout=stdout)
+        error = self.assertRaises(
+            SystemExit,
+            options.parseOptions,
+            ['--version']
+        )
+        self.assertEqual(
+            (0, __version__ + '\n'),
+            (error.code, stdout.getvalue())
+        )
+
+
+    def test_argsTooFew(self):
+        """
+        L{BuildNewsScript.main} raises L{SystemExit} when less than 1 argument
+        is passed to it and writes a message to stderr.
+        """
+        stderr = io.BytesIO()
+        script = NewsBuilderScript(stderr=stderr)
+        error = self.assertRaises(SystemExit, script.main, [])
+        self.assertEqual(
+            (1, b'ERROR: Wrong number of arguments.\n'),
+            (error.code, stderr.getvalue())
+        )
+
+
+    def test_argsTooMany(self):
+        """
+        L{BuildNewsScript.main} raises L{SystemExit} when more than 1 argument
+        is passed to it and writes a message to stderr.
+        """
+        stderr = io.BytesIO()
+        script = NewsBuilderScript(stderr=stderr)
+        error = self.assertRaises(SystemExit, script.main, ["hello", "world"])
+        self.assertEqual(
+            (1, b'ERROR: Wrong number of arguments.\n'),
+            (error.code, stderr.getvalue())
+        )
+
+
+    def test_mainCallsBuildAll(self):
+        """
+        L{BuildNewsScript.main} calls C{self.newsBuilder.buildAll} with the
+        supplied repository directory path.
+        """
+        expectedPath = b'/foo/bar/baz'
+        fakeNewsBuilder = FakeNewsBuilder()
+        script = NewsBuilderScript(newsBuilder=fakeNewsBuilder)
+        script.main([expectedPath])
+        self.assertEqual(
+            [FilePath(expectedPath)],
+            fakeNewsBuilder.buildAllCalls
         )
