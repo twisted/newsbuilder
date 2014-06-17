@@ -268,7 +268,6 @@ class UtilityTest(TestCase):
         self.assertEqual(cwd, os.getcwd())
 
 
-
     def test_replaceInFile(self):
         """
         L{replaceInFile} replaces data in a file based on a dict. A key from
