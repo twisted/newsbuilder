@@ -30,7 +30,7 @@ from newsbuilder import (
     runCommand, NewsBuilder, NotWorkingDirectory, TwistedBuildStrategy,
     NewsBuilderOptions, NewsBuilderScript, __version__)
 
-from newsbuilder._newsbuilder import _changeNewsVersion
+from newsbuilder._newsbuilder import _changeNewsVersion, _formatHeader
 
 if os.name != 'posix':
     skip = "Release toolchain only supported on POSIX."
@@ -289,6 +289,13 @@ class UtilityTest(TestCase):
         replaceInFile('release.replace', {'2.0.0': '3.0.0'})
         self.assertEqual(open('release.replace').read(), expected)
 
+
+    def test_formatHeader(self):
+        """
+        L{_formatHeader} accepts a title and underlines it with I{=} followed by
+        newlines.
+        """
+        self.assertEqual('Foo\n===\n\n', _formatHeader('Foo'))
 
 
     def test_changeVersionInNews(self):
