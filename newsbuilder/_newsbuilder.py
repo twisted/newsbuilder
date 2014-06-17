@@ -511,15 +511,16 @@ class NewsBuilderScript(object):
     """
     The entry point for the I{newsbuilder} script.
     """
-    def __init__(self, newsBuilder=None, stdout=None, stderr=None):
+    def __init__(self, buildStrategy=None, newsBuilder=None,
+                 stdout=None, stderr=None):
         """
-        @param newsBuilder: A L{NewsBuilder} instance.
+        @param buildStrategy: A L{TwistedBuildStrategy} like instance.
         @param stdout: A file to which stdout messages will be written.
         @param stderr: A file to which stderr messages will be written.
         """
-        if newsBuilder is None:
-            newsBuilder = NewsBuilder()
-        self.newsBuilder = newsBuilder
+        if buildStrategy is None:
+            buildStrategy = TwistedBuildStrategy(newsBuilder=NewsBuilder())
+        self.buildStrategy = buildStrategy
 
         if stdout is None:
             stdout = sys.stdout
@@ -542,7 +543,7 @@ class NewsBuilderScript(object):
             self.stderr.write(message.encode('utf-8'))
             raise SystemExit(1)
 
-        self.newsBuilder.buildAll(options['repositoryPath'])
+        self.buildStrategy.buildAll(options['repositoryPath'])
 
 
 

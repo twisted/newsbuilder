@@ -833,25 +833,6 @@ class TwistedBuildStrategyTests(TestCase):
 
 
 
-class FakeNewsBuilder(object):
-    """
-    A fake L{NewsBuilder} which records the arguments passed to its methods.
-    """
-    def __init__(self):
-        """
-        Initialise lists for recording method calls.
-        """
-        self.buildAllCalls = []
-
-
-    def buildAll(self, baseDirectory):
-        """
-        Record calls to L{NewsBuilder.buildAll}.
-        """
-        self.buildAllCalls.append(baseDirectory)
-
-
-
 class NewsBuilderOptionsTests(TestCase):
     """
     Tests for L{NewsBuilderOptions}.
@@ -864,6 +845,26 @@ class NewsBuilderOptionsTests(TestCase):
         options = NewsBuilderOptions()
         options.parseOptions([expectedPath])
         self.assertEqual(FilePath(expectedPath), options['repositoryPath'])
+
+
+
+class FakeBuildStrategy(object):
+    """
+    A fake L{TwistedBuildStrategy} which records the arguments passed to its
+    methods.
+    """
+    def __init__(self):
+        """
+        Initialise lists for recording method calls.
+        """
+        self.buildAllCalls = []
+
+
+    def buildAll(self, baseDirectory):
+        """
+        Record calls to L{buildAll}.
+        """
+        self.buildAllCalls.append(baseDirectory)
 
 
 
@@ -892,7 +893,7 @@ class NewsBuilderScriptTests(TestCase):
 
     def test_argsTooFew(self):
         """
-        L{BuildNewsScript.main} raises L{SystemExit} when less than 1 argument
+        L{NewsBuilderScript.main} raises L{SystemExit} when less than 1 argument
         is passed to it and writes a message to stderr.
         """
         stderr = io.BytesIO()
@@ -906,7 +907,7 @@ class NewsBuilderScriptTests(TestCase):
 
     def test_argsTooMany(self):
         """
-        L{BuildNewsScript.main} raises L{SystemExit} when more than 1 argument
+        L{NewsBuilderScript.main} raises L{SystemExit} when more than 1 argument
         is passed to it and writes a message to stderr.
         """
         stderr = io.BytesIO()
@@ -920,14 +921,14 @@ class NewsBuilderScriptTests(TestCase):
 
     def test_mainCallsBuildAll(self):
         """
-        L{BuildNewsScript.main} calls C{self.newsBuilder.buildAll} with the
+        L{NewsBuilderScript.main} calls C{self.buildStrategy.buildAll} with the
         supplied repository directory path.
         """
         expectedPath = b'/foo/bar/baz'
-        fakeNewsBuilder = FakeNewsBuilder()
-        script = NewsBuilderScript(newsBuilder=fakeNewsBuilder)
+        fakeBuildStrategy = FakeBuildStrategy()
+        script = NewsBuilderScript(buildStrategy=fakeBuildStrategy)
         script.main([expectedPath])
         self.assertEqual(
             [FilePath(expectedPath)],
-            fakeNewsBuilder.buildAllCalls
+            fakeBuildStrategy.buildAllCalls
         )
