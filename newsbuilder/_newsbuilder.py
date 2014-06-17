@@ -476,6 +476,13 @@ class NewsBuilderOptions(usage.Options):
     """
     Command line options for L{NewsBuilderScript}.
     """
+    synopsis = "Usage: newsbuilder [options] REPOSITORY_PATH"
+
+    longdesc = """\
+    REPOSITORY_PATH: The path to the root of your project.
+                     Must be a subversion repository.
+    """
+
     def __init__(self,  stdout=None, stderr=None):
         """
         @param stdout: A file to which stdout messages will be written.
