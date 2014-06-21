@@ -13,7 +13,7 @@
 Newsbuilder
 ===========
 
-Newsbuilder let's you avoid merge conflicts in your project's NEWS file, by turning a folder full of ticket news snippets like this:
+Newsbuilder lets you avoid merge conflicts in your project's NEWS file, by turning a folder full of ticket news snippets like this:
 
 * *123.bugfix*: Fixed a thing.
 * *124.feature*: Added a feature.
