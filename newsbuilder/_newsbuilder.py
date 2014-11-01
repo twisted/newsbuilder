@@ -14,14 +14,12 @@ which must run on multiple platforms (eg the setup.py script).
 
 import textwrap
 from datetime import date
-import re
 import sys
 import os
 
 from subprocess import PIPE, STDOUT, Popen
 
 from twisted.python.filepath import FilePath
-from twisted.python.compat import execfile
 from twisted.python import usage
 
 # The offset between a year and the corresponding major version number.
@@ -70,138 +68,6 @@ class CommandFailed(Exception):
         self.exitStatus = exitStatus
         self.exitSignal = exitSignal
         self.output = output
-
-
-
-def _changeVersionInFile(old, new, filename):
-    """
-    Replace the C{old} version number with the C{new} one in the given
-    C{filename}.
-    """
-    replaceInFile(filename, {old.base(): new.base()})
-
-
-
-class Project(object):
-    """
-    A representation of a project that has a version.
-
-    @ivar directory: A L{twisted.python.filepath.FilePath} pointing to the base
-        directory of a Twisted-style Python package. The package should contain
-        a C{_version.py} file and a C{topfiles} directory that contains a
-        C{README} file.
-    """
-
-    def __init__(self, directory):
-        self.directory = directory
-
-
-    def __repr__(self):
-        return '%s(%r)' % (
-            self.__class__.__name__, self.directory)
-
-
-    def getVersion(self):
-        """
-        @return: A L{Version} specifying the version number of the project
-        based on live python modules.
-        """
-        namespace = {}
-        execfile(self.directory.child("_version.py").path, namespace)
-        return namespace["get_versions"]()['version']
-
-
-    def updateVersion(self, version):
-        """
-        Replace the existing version numbers in _version.py and README files
-        with the specified version.
-        """
-        oldVersion = self.getVersion()
-        replaceProjectVersion(self.directory.child("_version.py").path,
-                              version)
-        _changeVersionInFile(
-            oldVersion, version,
-            self.directory.child("topfiles").child("README").path)
-
-
-
-def findTwistedProjects(baseDirectory):
-    """
-    Find all Twisted-style projects beneath a base directory.
-
-    @param baseDirectory: A L{twisted.python.filepath.FilePath} to look inside.
-    @return: A list of L{Project}.
-    """
-    projects = []
-    for filePath in baseDirectory.walk():
-        if filePath.basename() == 'topfiles':
-            projectDirectory = filePath.parent()
-            projects.append(Project(projectDirectory))
-    return projects
-
-
-
-
-def generateVersionFileData(version):
-    """
-    Generate the data to be placed into a _version.py file.
-
-    @param version: A version object.
-    """
-    if version.prerelease is not None:
-        prerelease = ", prerelease=%r" % (version.prerelease,)
-    else:
-        prerelease = ""
-    data = '''\
-# Copyright (c) Twisted Matrix Laboratories.
-# See LICENSE for details.
-
-# This is an auto-generated file. Do not edit it.
-
-"""
-Provides Twisted version information.
-"""
-
-from twisted.python import versions
-version = versions.Version(%r, %s, %s, %s%s)
-''' % (version.package, version.major, version.minor, version.micro,
-       prerelease)
-    return data
-
-
-
-def replaceProjectVersion(filename, newversion):
-    """
-    Write version specification code into the given filename, which
-    sets the version to the given version number.
-
-    @param filename: A filename which is most likely a "_version.py"
-        under some Twisted project.
-    @param newversion: A version object.
-    """
-    # XXX - this should be moved to Project and renamed to writeVersionFile.
-    # jml, 2007-11-15.
-    f = open(filename, 'w')
-    f.write(generateVersionFileData(newversion))
-    f.close()
-
-
-
-def replaceInFile(filename, oldToNew):
-    """
-    I replace the text `oldstr' with `newstr' in `filename' using science.
-    """
-    os.rename(filename, filename + '.bak')
-    f = open(filename + '.bak')
-    d = f.read()
-    f.close()
-    for k, v in oldToNew.items():
-        d = d.replace(k, v)
-    f = open(filename + '.new', 'w')
-    f.write(d)
-    f.close()
-    os.rename(filename + '.new', filename)
-    os.unlink(filename + '.bak')
 
 
 
@@ -439,35 +305,6 @@ class NewsBuilder(object):
         self.build(topfiles, news, header)
         # Finally, delete the fragments
         self._deleteFragments(topfiles)
-
-
-    def _changeNewsVersion(self, news, name, oldVersion, newVersion, today):
-        """
-        Change all references to the current version number in a NEWS file to
-        refer to C{newVersion} instead.
-
-        @param news: The NEWS file to change.
-        @type news: L{FilePath}
-        @param name: The name of the project to change.
-        @type name: C{str}
-        @param oldVersion: The old version of the project.
-        @type oldVersion: L{Version}
-        @param newVersion: The new version of the project.
-        @type newVersion: L{Version}
-        @param today: A YYYY-MM-DD string representing today's date.
-        @type today: C{str}
-        """
-        newHeader = self._formatHeader(
-            "Twisted %s %s (%s)" % (name, newVersion.base(), today))
-        expectedHeaderRegex = re.compile(
-            r"Twisted %s %s \(\d{4}-\d\d-\d\d\)\n=+\n\n" % (
-                re.escape(name), re.escape(oldVersion.base())))
-        oldNews = news.getContent()
-        match = expectedHeaderRegex.search(oldNews)
-        if match:
-            oldHeader = match.group()
-            replaceInFile(news.path, {oldHeader: newHeader})
-
 
 
 class NotWorkingDirectory(Exception):
