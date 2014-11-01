@@ -240,8 +240,6 @@ class NewsBuilder(object):
 
         @param header: The top-level header to use when writing the news.
         @type header: L{str}
-
-        @raise NotWorkingDirectory: If the C{path} is not an SVN checkout.
         """
         changes = []
         for part in (self._FEATURE, self._BUGFIX, self._DOC, self._REMOVAL):
@@ -305,12 +303,6 @@ class NewsBuilder(object):
         self.build(topfiles, news, header)
         # Finally, delete the fragments
         self._deleteFragments(topfiles)
-
-
-class NotWorkingDirectory(Exception):
-    """
-    Raised when a directory does not appear to be an SVN working directory.
-    """
 
 
 
