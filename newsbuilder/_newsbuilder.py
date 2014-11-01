@@ -421,50 +421,6 @@ class NewsBuilder(object):
                 runCommand(["git", "rm", child.path])
 
 
-    def _getNewsName(self, project):
-        """
-        Return the name of C{project} that should appear in NEWS.
-
-        @param project: A L{Project}
-        @return: The name of C{project}.
-        """
-        name = project.directory.basename().title()
-        if name == 'Twisted':
-            name = 'Core'
-        return name
-
-
-    def _iterProjects(self, baseDirectory):
-        """
-        Iterate through the Twisted projects in C{baseDirectory}, yielding
-        everything we need to know to build news for them.
-
-        Yields C{topfiles}, C{name}, C{version}, for each sub-project in
-        reverse-alphabetical order. C{topfile} is the L{FilePath} for the
-        topfiles directory, C{name} is the nice name of the project (as should
-        appear in the NEWS file), C{version} is the current version string for
-        that project.
-
-        @param baseDirectory: A L{FilePath} representing the root directory
-            beneath which to find Twisted projects for which to generate
-            news (see L{findTwistedProjects}).
-        @type baseDirectory: L{FilePath}
-        """
-        # Get all the subprojects to generate news for
-        projects = findTwistedProjects(baseDirectory)
-        # And order them alphabetically for ease of reading
-        projects.sort(key=lambda proj: proj.directory.path)
-        # And generate them backwards since we write news by prepending to
-        # files.
-        projects.reverse()
-
-        for project in projects:
-            topfiles = project.directory.child("topfiles")
-            name = self._getNewsName(project)
-            version = project.getVersion()
-            yield topfiles, name, version
-
-
     def buildAll(self, baseDirectory, version):
         """
         Find all of the Twisted subprojects beneath C{baseDirectory} and update
