@@ -6,21 +6,13 @@ L{newsbuilder} public APIs
 """
 
 from ._newsbuilder import (
-    findTwistedProjects, replaceInFile,
-    replaceProjectVersion, Project, generateVersionFileData,
-    CommandFailed, runCommand, NewsBuilder, NotWorkingDirectory,
-    NewsBuilderOptions, NewsBuilderScript)
+    CommandFailed, runCommand, NewsBuilder, NewsBuilderOptions,
+    NewsBuilderScript)
 
 __all__ = [
-    'findTwistedProjects',
-    'replaceInFile',
-    'replaceProjectVersion',
-    'Project',
-    'generateVersionFileData',
     'CommandFailed',
     'runCommand',
     'NewsBuilder',
-    'NotWorkingDirectory',
     'NewsBuilderOptions',
     'NewsBuilderScript',
     '__version__',
