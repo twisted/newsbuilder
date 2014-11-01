@@ -22,9 +22,6 @@ from subprocess import PIPE, STDOUT, Popen
 from twisted.python.filepath import FilePath
 from twisted.python import usage
 
-# The offset between a year and the corresponding major version number.
-VERSION_OFFSET = 2000
-
 
 def runCommand(args):
     """
