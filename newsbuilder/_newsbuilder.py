@@ -108,7 +108,7 @@ class Project(object):
         """
         namespace = {}
         execfile(self.directory.child("_version.py").path, namespace)
-        return namespace["version"]
+        return namespace["get_versions"]()['version']
 
 
     def updateVersion(self, version):
@@ -418,7 +418,7 @@ class NewsBuilder(object):
         for child in path.children():
             base, ext = os.path.splitext(child.basename())
             if ext in ticketTypes:
-                runCommand(["svn", "rm", child.path])
+                runCommand(["git", "rm", child.path])
 
 
     def _getNewsName(self, project):
@@ -465,7 +465,7 @@ class NewsBuilder(object):
             yield topfiles, name, version
 
 
-    def buildAll(self, baseDirectory):
+    def buildAll(self, baseDirectory, version):
         """
         Find all of the Twisted subprojects beneath C{baseDirectory} and update
         their news files from the ticket change description files in their
@@ -477,16 +477,12 @@ class NewsBuilder(object):
             news (see L{findTwistedProjects}).
         """
         today = self._today()
-        for topfiles, name, version in self._iterProjects(baseDirectory):
-            # We first build for the subproject
-            news = topfiles.child("NEWS")
-            header = "Twisted %s %s (%s)" % (name, version.base(), today)
-            self.build(topfiles, news, header)
-            # Then for the global NEWS file
-            news = baseDirectory.child("NEWS")
-            self.build(topfiles, news, header)
-            # Finally, delete the fragments
-            self._deleteFragments(topfiles)
+        header = "Newsbuilder %s (%s)" % (version, today)
+        topfiles = baseDirectory.descendant(['newsbuilder', 'topfiles'])
+        news = baseDirectory.child("NEWS")
+        self.build(topfiles, news, header)
+        # Finally, delete the fragments
+        self._deleteFragments(topfiles)
 
 
     def _changeNewsVersion(self, news, name, oldVersion, newVersion, today):
@@ -553,12 +549,13 @@ class NewsBuilderOptions(usage.Options):
         raise SystemExit(0)
 
 
-    def parseArgs(self, repositoryPath):
+    def parseArgs(self, repositoryPath, version):
         """
         Handle a repository path supplied as a positional argument and store it
         as a L{FilePath}.
         """
         self['repositoryPath'] = FilePath(repositoryPath)
+        self['version'] = version
 
 
 
@@ -597,4 +594,4 @@ class NewsBuilderScript(object):
             self.stderr.write(message.encode('utf-8'))
             raise SystemExit(1)
 
-        self.newsBuilder.buildAll(options['repositoryPath'])
+        self.newsBuilder.buildAll(options['repositoryPath'], options['version'])
