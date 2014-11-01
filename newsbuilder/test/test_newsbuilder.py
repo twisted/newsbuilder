@@ -287,7 +287,7 @@ class UtilityTest(TestCase):
 
 
 def make_newsbuilder_tests():
-
+    builder = NewsBuilder()
 
     class NewsBuilderTests(TestCase, StructureAssertingMixin):
         """
@@ -300,7 +300,6 @@ def make_newsbuilder_tests():
             Create a fake project and stuff some basic structure and content into
             it.
             """
-            self.builder = NewsBuilder()
             self.project = FilePath(self.mktemp())
             self.project.createDirectory()
 
@@ -349,7 +348,7 @@ def make_newsbuilder_tests():
             L{NewsBuilder._today} returns today's date in YYYY-MM-DD form.
             """
             self.assertEqual(
-                self.builder._today(), date.today().strftime('%Y-%m-%d'))
+                builder._today(), date.today().strftime('%Y-%m-%d'))
 
 
         def test_findFeatures(self):
@@ -358,8 +357,8 @@ def make_newsbuilder_tests():
             returns a list of bugfix ticket numbers and descriptions as a list of
             two-tuples.
             """
-            features = self.builder._findChanges(
-                self.project, self.builder._FEATURE)
+            features = builder._findChanges(
+                self.project, builder._FEATURE)
             self.assertEqual(
                 features,
                 [(5, "We now support the web."),
@@ -377,8 +376,8 @@ def make_newsbuilder_tests():
             returns a list of bugfix ticket numbers and descriptions as a list of
             two-tuples.
             """
-            bugfixes = self.builder._findChanges(
-                self.project, self.builder._BUGFIX)
+            bugfixes = builder._findChanges(
+                self.project, builder._BUGFIX)
             self.assertEqual(
                 bugfixes,
                 [(23, 'Broken stuff was fixed.')])
@@ -390,8 +389,8 @@ def make_newsbuilder_tests():
             returns a list of removal/deprecation ticket numbers and descriptions
             as a list of two-tuples.
             """
-            removals = self.builder._findChanges(
-                self.project, self.builder._REMOVAL)
+            removals = builder._findChanges(
+                self.project, builder._REMOVAL)
             self.assertEqual(
                 removals,
                 [(25, 'Stupid stuff was deprecated.')])
@@ -403,8 +402,8 @@ def make_newsbuilder_tests():
             returns a list of documentation ticket numbers and descriptions as a
             list of two-tuples.
             """
-            doc = self.builder._findChanges(
-                self.project, self.builder._DOC)
+            doc = builder._findChanges(
+                self.project, builder._DOC)
             self.assertEqual(
                 doc,
                 [(40, 'foo.bar.Baz.quux'),
@@ -417,8 +416,8 @@ def make_newsbuilder_tests():
             returns a list of removal/deprecation ticket numbers and descriptions
             as a list of two-tuples.
             """
-            misc = self.builder._findChanges(
-                self.project, self.builder._MISC)
+            misc = builder._findChanges(
+                self.project, builder._MISC)
             self.assertEqual(
                 misc,
                 [(30, ''),
@@ -431,7 +430,7 @@ def make_newsbuilder_tests():
             writing and a header string and writes out a news file header to it.
             """
             output = StringIO()
-            self.builder._writeHeader(output, "Super Awesometastic 32.16")
+            builder._writeHeader(output, "Super Awesometastic 32.16")
             self.assertEqual(
                 output.getvalue(),
                 "Super Awesometastic 32.16\n"
@@ -447,7 +446,7 @@ def make_newsbuilder_tests():
             of the given ticket information.
             """
             output = StringIO()
-            self.builder._writeSection(
+            builder._writeSection(
                 output, "Features",
                 [(3, "Great stuff."),
                  (17, "Very long line which goes on and on and on, seemingly "
@@ -471,7 +470,7 @@ def make_newsbuilder_tests():
             of the ticket numbers, but excludes any descriptions.
             """
             output = StringIO()
-            self.builder._writeMisc(
+            builder._writeMisc(
                 output, "Other",
                 [(x, "") for x in range(2, 50, 3)])
             self.assertEqual(
@@ -489,7 +488,7 @@ def make_newsbuilder_tests():
             L{NewsBuilder.build} updates a NEWS file with new features based on the
             I{<ticket>.feature} files found in the directory specified.
             """
-            self.builder.build(
+            builder.build(
                 self.project, self.project.child('NEWS'),
                 "Super Awesometastic 32.16")
 
@@ -540,7 +539,7 @@ def make_newsbuilder_tests():
             project.makedirs()
             self.createStructure(project, {'NEWS': self.existingText})
 
-            self.builder.build(
+            builder.build(
                 project, project.child('NEWS'),
                 "Super Awesometastic 32.16")
             results = project.child('NEWS').getContent()
@@ -549,7 +548,7 @@ def make_newsbuilder_tests():
                 'Super Awesometastic 32.16\n'
                 '=========================\n'
                 '\n' +
-                self.builder._NO_CHANGES +
+                builder._NO_CHANGES +
                 '\n\n' + self.existingText)
 
 
@@ -565,7 +564,7 @@ def make_newsbuilder_tests():
                 '\n'
                 'Blah blah other stuff.\n')
 
-            self.builder.build(self.project, news, "Super Awesometastic 32.16")
+            builder.build(self.project, news, "Super Awesometastic 32.16")
 
             self.assertEqual(
                 news.getContent(),
@@ -616,7 +615,7 @@ def make_newsbuilder_tests():
                 if ticket.splitext()[1] in ('.feature', '.misc', '.doc'):
                     ticket.remove()
 
-            self.builder.build(
+            builder.build(
                 self.project, self.project.child('NEWS'),
                 'Some Thing 1.2')
 
@@ -646,7 +645,7 @@ def make_newsbuilder_tests():
             feature('5').copyTo(feature('15'))
             feature('5').copyTo(feature('16'))
 
-            self.builder.build(
+            builder.build(
                 self.project, self.project.child('NEWS'),
                 'Project Name 5.0')
 
@@ -811,7 +810,7 @@ def make_newsbuilder_tests():
             path is not a SVN checkout.
             """
             self.assertRaises(
-                NotWorkingDirectory, self.builder.buildAll, self.project)
+                NotWorkingDirectory, builder.buildAll, self.project)
 
     return NewsBuilderTests
 
