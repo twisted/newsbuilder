@@ -82,6 +82,49 @@ def _changeVersionInFile(old, new, filename):
 
 
 
+def _formatHeader(header):
+    """
+    Format a header for a NEWS file.
+
+    A header is a title with '=' signs underlining it.
+
+    @param header: The header string to format.
+    @type header: C{str}
+    @return: A C{str} containing C{header}.
+    """
+    return header + '\n' + '=' * len(header) + '\n\n'
+
+
+
+def _changeNewsVersion(news, name, oldVersion, newVersion, today):
+    """
+    Change all references to the current version number in a NEWS file to
+    refer to C{newVersion} instead.
+
+    @param news: The NEWS file to change.
+    @type news: L{FilePath}
+    @param name: The name of the project to change.
+    @type name: C{str}
+    @param oldVersion: The old version of the project.
+    @type oldVersion: L{Version}
+    @param newVersion: The new version of the project.
+    @type newVersion: L{Version}
+    @param today: A YYYY-MM-DD string representing today's date.
+    @type today: C{str}
+    """
+    newHeader = _formatHeader(
+        "Twisted %s %s (%s)" % (name, newVersion.base(), today))
+    expectedHeaderRegex = re.compile(
+        r"Twisted %s %s \(\d{4}-\d\d-\d\d\)\n=+\n\n" % (
+            re.escape(name), re.escape(oldVersion.base())))
+    oldNews = news.getContent()
+    match = expectedHeaderRegex.search(oldNews)
+    if match:
+        oldHeader = match.group()
+        replaceInFile(news.path, {oldHeader: newHeader})
+
+
+
 class Project(object):
     """
     A representation of a project that has a version.
@@ -279,19 +322,6 @@ class NewsBuilder(object):
         return results
 
 
-    def _formatHeader(self, header):
-        """
-        Format a header for a NEWS file.
-
-        A header is a title with '=' signs underlining it.
-
-        @param header: The header string to format.
-        @type header: C{str}
-        @return: A C{str} containing C{header}.
-        """
-        return header + '\n' + '=' * len(header) + '\n\n'
-
-
     def _writeHeader(self, fileObj, header):
         """
         Write a version header to the given file.
@@ -300,7 +330,7 @@ class NewsBuilder(object):
         @param header: The header to write to the file.
         @type header: C{str}
         """
-        fileObj.write(self._formatHeader(header))
+        fileObj.write(_formatHeader(header))
 
 
     def _writeSection(self, fileObj, header, tickets):
@@ -434,96 +464,6 @@ class NewsBuilder(object):
         return name
 
 
-    def _iterProjects(self, baseDirectory):
-        """
-        Iterate through the Twisted projects in C{baseDirectory}, yielding
-        everything we need to know to build news for them.
-
-        Yields C{topfiles}, C{name}, C{version}, for each sub-project in
-        reverse-alphabetical order. C{topfile} is the L{FilePath} for the
-        topfiles directory, C{name} is the nice name of the project (as should
-        appear in the NEWS file), C{version} is the current version string for
-        that project.
-
-        @param baseDirectory: A L{FilePath} representing the root directory
-            beneath which to find Twisted projects for which to generate
-            news (see L{findTwistedProjects}).
-        @type baseDirectory: L{FilePath}
-        """
-        # Get all the subprojects to generate news for
-        projects = findTwistedProjects(baseDirectory)
-        # And order them alphabetically for ease of reading
-        projects.sort(key=lambda proj: proj.directory.path)
-        # And generate them backwards since we write news by prepending to
-        # files.
-        projects.reverse()
-
-        for project in projects:
-            topfiles = project.directory.child("topfiles")
-            name = self._getNewsName(project)
-            version = project.getVersion()
-            yield topfiles, name, version
-
-
-    def buildAll(self, baseDirectory):
-        """
-        Find all of the Twisted subprojects beneath C{baseDirectory} and update
-        their news files from the ticket change description files in their
-        I{topfiles} directories and update the news file in C{baseDirectory}
-        with all of the news.
-
-        @param baseDirectory: A L{FilePath} representing the root directory
-            beneath which to find Twisted projects for which to generate
-            news (see L{findTwistedProjects}).
-        """
-        try:
-            runCommand(["svn", "info", baseDirectory.path])
-        except CommandFailed:
-            raise NotWorkingDirectory(
-                "%s does not appear to be an SVN working directory."
-                % (baseDirectory.path,))
-
-        today = self._today()
-        for topfiles, name, version in self._iterProjects(baseDirectory):
-            # We first build for the subproject
-            news = topfiles.child("NEWS")
-            header = "Twisted %s %s (%s)" % (name, version.base(), today)
-            self.build(topfiles, news, header)
-            # Then for the global NEWS file
-            news = baseDirectory.child("NEWS")
-            self.build(topfiles, news, header)
-            # Finally, delete the fragments
-            self._deleteFragments(topfiles)
-
-
-    def _changeNewsVersion(self, news, name, oldVersion, newVersion, today):
-        """
-        Change all references to the current version number in a NEWS file to
-        refer to C{newVersion} instead.
-
-        @param news: The NEWS file to change.
-        @type news: L{FilePath}
-        @param name: The name of the project to change.
-        @type name: C{str}
-        @param oldVersion: The old version of the project.
-        @type oldVersion: L{Version}
-        @param newVersion: The new version of the project.
-        @type newVersion: L{Version}
-        @param today: A YYYY-MM-DD string representing today's date.
-        @type today: C{str}
-        """
-        newHeader = self._formatHeader(
-            "Twisted %s %s (%s)" % (name, newVersion.base(), today))
-        expectedHeaderRegex = re.compile(
-            r"Twisted %s %s \(\d{4}-\d\d-\d\d\)\n=+\n\n" % (
-                re.escape(name), re.escape(oldVersion.base())))
-        oldNews = news.getContent()
-        match = expectedHeaderRegex.search(oldNews)
-        if match:
-            oldHeader = match.group()
-            replaceInFile(news.path, {oldHeader: newHeader})
-
-
 
 class NotWorkingDirectory(Exception):
     """
@@ -536,6 +476,13 @@ class NewsBuilderOptions(usage.Options):
     """
     Command line options for L{NewsBuilderScript}.
     """
+    synopsis = "Usage: newsbuilder [options] REPOSITORY_PATH"
+
+    longdesc = """\
+    REPOSITORY_PATH: The path to the root of your project.
+                     Must be a subversion repository.
+    """
+
     def __init__(self,  stdout=None, stderr=None):
         """
         @param stdout: A file to which stdout messages will be written.
@@ -573,15 +520,16 @@ class NewsBuilderScript(object):
     """
     The entry point for the I{newsbuilder} script.
     """
-    def __init__(self, newsBuilder=None, stdout=None, stderr=None):
+    def __init__(self, buildStrategy=None, newsBuilder=None,
+                 stdout=None, stderr=None):
         """
-        @param newsBuilder: A L{NewsBuilder} instance.
+        @param buildStrategy: A L{TwistedBuildStrategy} like instance.
         @param stdout: A file to which stdout messages will be written.
         @param stderr: A file to which stderr messages will be written.
         """
-        if newsBuilder is None:
-            newsBuilder = NewsBuilder()
-        self.newsBuilder = newsBuilder
+        if buildStrategy is None:
+            buildStrategy = TwistedBuildStrategy(newsBuilder=NewsBuilder())
+        self.buildStrategy = buildStrategy
 
         if stdout is None:
             stdout = sys.stdout
@@ -604,4 +552,82 @@ class NewsBuilderScript(object):
             self.stderr.write(message.encode('utf-8'))
             raise SystemExit(1)
 
-        self.newsBuilder.buildAll(options['repositoryPath'])
+        self.buildStrategy.buildAll(options['repositoryPath'])
+
+
+
+class TwistedBuildStrategy(object):
+    """
+    A strategy for using newsbuilder in the Twisted project.
+    """
+    def __init__(self, newsBuilder):
+        self.newsBuilder = newsBuilder
+
+
+    def _today(self):
+        """
+        Return today's date as a string in YYYY-MM-DD format.
+        """
+        return date.today().strftime('%Y-%m-%d')
+
+
+    def _iterProjects(self, baseDirectory):
+        """
+        Iterate through the Twisted projects in C{baseDirectory}, yielding
+        everything we need to know to build news for them.
+
+        Yields C{topfiles}, C{name}, C{version}, for each sub-project in
+        reverse-alphabetical order. C{topfile} is the L{FilePath} for the
+        topfiles directory, C{name} is the nice name of the project (as should
+        appear in the NEWS file), C{version} is the current version string for
+        that project.
+
+        @param baseDirectory: A L{FilePath} representing the root directory
+            beneath which to find Twisted projects for which to generate
+            news (see L{findTwistedProjects}).
+        @type baseDirectory: L{FilePath}
+        """
+        # Get all the subprojects to generate news for
+        projects = findTwistedProjects(baseDirectory)
+        # And order them alphabetically for ease of reading
+        projects.sort(key=lambda proj: proj.directory.path)
+        # And generate them backwards since we write news by prepending to
+        # files.
+        projects.reverse()
+
+        for project in projects:
+            topfiles = project.directory.child("topfiles")
+            name = self.newsBuilder._getNewsName(project)
+            version = project.getVersion()
+            yield topfiles, name, version
+
+
+    def buildAll(self, baseDirectory):
+        """
+        Find all of the Twisted subprojects beneath C{baseDirectory} and update
+        their news files from the ticket change description files in their
+        I{topfiles} directories and update the news file in C{baseDirectory}
+        with all of the news.
+
+        @param baseDirectory: A L{FilePath} representing the root directory
+            beneath which to find Twisted projects for which to generate
+            news (see L{findTwistedProjects}).
+        """
+        try:
+            runCommand(["svn", "info", baseDirectory.path])
+        except CommandFailed:
+            raise NotWorkingDirectory(
+                "%s does not appear to be an SVN working directory."
+                % (baseDirectory.path,))
+
+        today = self._today()
+        for topfiles, name, version in self._iterProjects(baseDirectory):
+            # We first build for the subproject
+            news = topfiles.child("NEWS")
+            header = "Twisted %s %s (%s)" % (name, version.base(), today)
+            self.newsBuilder.build(topfiles, news, header)
+            # Then for the global NEWS file
+            news = baseDirectory.child("NEWS")
+            self.newsBuilder.build(topfiles, news, header)
+            # Finally, delete the fragments
+            self.newsBuilder._deleteFragments(topfiles)

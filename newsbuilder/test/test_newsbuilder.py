@@ -27,8 +27,10 @@ from twisted.python.versions import Version
 from newsbuilder import (
     findTwistedProjects, replaceInFile,
     replaceProjectVersion, Project, generateVersionFileData,
-    runCommand, NewsBuilder, NotWorkingDirectory,
+    runCommand, NewsBuilder, NotWorkingDirectory, TwistedBuildStrategy,
     NewsBuilderOptions, NewsBuilderScript, __version__)
+
+from newsbuilder._newsbuilder import _changeNewsVersion, _formatHeader
 
 if os.name != 'posix':
     skip = "Release toolchain only supported on POSIX."
@@ -53,40 +55,42 @@ def genVersion(*args, **kwargs):
 
 
 
+def createStructure(root, dirDict):
+    """
+    Create a set of directories and files given a dict defining their
+    structure.
+
+    @param root: The directory in which to create the structure.  It must
+        already exist.
+    @type root: L{FilePath}
+
+    @param dirDict: The dict defining the structure. Keys should be strings
+        naming files, values should be strings describing file contents OR
+        dicts describing subdirectories.  All files are written in binary
+        mode.  Any string values are assumed to describe text files and
+        will have their newlines replaced with the platform-native newline
+        convention.  For example::
+
+            {"foofile": "foocontents",
+             "bardir": {"barfile": "bar\ncontents"}}
+    @type dirDict: C{dict}
+    """
+    for x in dirDict:
+        child = root.child(x)
+        if isinstance(dirDict[x], dict):
+            child.createDirectory()
+            createStructure(child, dirDict[x])
+        else:
+            child.setContent(dirDict[x].replace('\n', os.linesep))
+
+
+
 class StructureAssertingMixin(object):
     """
     A mixin for L{TestCase} subclasses which provides some methods for
     asserting the structure and contents of directories and files on the
     filesystem.
     """
-    def createStructure(self, root, dirDict):
-        """
-        Create a set of directories and files given a dict defining their
-        structure.
-
-        @param root: The directory in which to create the structure.  It must
-            already exist.
-        @type root: L{FilePath}
-
-        @param dirDict: The dict defining the structure. Keys should be strings
-            naming files, values should be strings describing file contents OR
-            dicts describing subdirectories.  All files are written in binary
-            mode.  Any string values are assumed to describe text files and
-            will have their newlines replaced with the platform-native newline
-            convention.  For example::
-
-                {"foofile": "foocontents",
-                 "bardir": {"barfile": "bar\ncontents"}}
-        @type dirDict: C{dict}
-        """
-        for x in dirDict:
-            child = root.child(x)
-            if isinstance(dirDict[x], dict):
-                child.createDirectory()
-                self.createStructure(child, dirDict[x])
-            else:
-                child.setContent(dirDict[x].replace('\n', os.linesep))
-
     def assertStructure(self, root, dirDict):
         """
         Assert that a directory is equivalent to one described by a dict.
@@ -264,7 +268,6 @@ class UtilityTest(TestCase):
         self.assertEqual(cwd, os.getcwd())
 
 
-
     def test_replaceInFile(self):
         """
         L{replaceInFile} replaces data in a file based on a dict. A key from
@@ -286,6 +289,82 @@ class UtilityTest(TestCase):
         self.assertEqual(open('release.replace').read(), expected)
 
 
+    def test_formatHeader(self):
+        """
+        L{_formatHeader} accepts a title and underlines it with I{=} followed by
+        newlines.
+        """
+        self.assertEqual('Foo\n===\n\n', _formatHeader('Foo'))
+
+
+    def test_changeVersionInNews(self):
+        """
+        L{_changeNewsVersion} gets the release date for a given version of a
+        project as a string.
+        """
+        builder = TwistedBuildStrategy(newsBuilder=NewsBuilder())
+        builder._today = lambda: '2009-12-01'
+        project = createFakeTwistedProject(FilePath(self.mktemp()))
+        svnCommit(project, repository=FilePath(self.mktemp()))
+        builder.buildAll(project)
+        newVersion = Version('TEMPLATE', 7, 7, 14)
+        coreNews = project.child('topfiles').child('NEWS')
+        # twisted 1.2.3 is the old version.
+        _changeNewsVersion(
+            coreNews, "Core", Version("twisted", 1, 2, 3),
+            newVersion, '2010-01-01')
+        expectedCore = (
+            'Twisted Core 7.7.14 (2010-01-01)\n'
+            '================================\n'
+            '\n'
+            'Features\n'
+            '--------\n'
+            ' - Third feature addition. (#3)\n'
+            '\n'
+            'Other\n'
+            '-----\n'
+            ' - #5\n\n\n')
+        self.assertEqual(
+            expectedCore + 'Old core news.\n', coreNews.getContent())
+
+
+
+def svnCommit(project, repository):
+    """
+    Make the C{project} directory a valid subversion directory with all
+    files committed to C{repository}.
+    """
+    runCommand(["svnadmin", "create", repository.path])
+    runCommand(["svn", "checkout", "file://" + repository.path,
+                project.path])
+
+    runCommand(["svn", "add"] + glob.glob(project.path + "/*"))
+    runCommand(["svn", "commit", project.path, "-m", "yay"])
+
+
+
+def createFakeTwistedProject(project):
+    """
+    Create a fake-looking Twisted project to build from.
+    """
+    project = project.child("twisted")
+    project.makedirs()
+    createStructure(
+        project, {
+            'NEWS': 'Old boring stuff from the past.\n',
+            '_version.py': genVersion("twisted", 1, 2, 3),
+            'topfiles': {
+                'NEWS': 'Old core news.\n',
+                '3.feature': 'Third feature addition.\n',
+                '5.misc': ''},
+            'conch': {
+                '_version.py': genVersion("twisted.conch", 3, 4, 5),
+                'topfiles': {
+                    'NEWS': 'Old conch news.\n',
+                    '7.bugfix': 'Fixed that bug.\n'}}})
+    return project
+
+
 
 class NewsBuilderTests(TestCase, StructureAssertingMixin):
     """
@@ -303,7 +382,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         self.project.createDirectory()
 
         self.existingText = 'Here is stuff which was present previously.\n'
-        self.createStructure(
+        createStructure(
             self.project, {
                 'NEWS': self.existingText,
                 '5.feature': 'We now support the web.\n',
@@ -322,24 +401,6 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
                 '35.misc': '',
                 '40.doc': 'foo.bar.Baz.quux',
                 '41.doc': 'writing Foo servers'})
-
-
-    def svnCommit(self, project=None):
-        """
-        Make the C{project} directory a valid subversion directory with all
-        files committed.
-        """
-        if project is None:
-            project = self.project
-        repositoryPath = self.mktemp()
-        repository = FilePath(repositoryPath)
-
-        runCommand(["svnadmin", "create", repository.path])
-        runCommand(["svn", "checkout", "file://" + repository.path,
-                    project.path])
-
-        runCommand(["svn", "add"] + glob.glob(project.path + "/*"))
-        runCommand(["svn", "commit", project.path, "-m", "yay"])
 
 
     def test_today(self):
@@ -536,7 +597,7 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         """
         project = FilePath(self.mktemp()).child("twisted")
         project.makedirs()
-        self.createStructure(project, {'NEWS': self.existingText})
+        createStructure(project, {'NEWS': self.existingText})
 
         self.builder.build(
             project, project.child('NEWS'),
@@ -678,31 +739,23 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
             'Here is stuff which was present previously.\n')
 
 
-    def createFakeTwistedProject(self):
+
+class TwistedBuildStrategyTests(TestCase):
+    """
+    Tests for L{TwistedBuildStrategy}.
+    """
+    def test_today(self):
         """
-        Create a fake-looking Twisted project to build from.
+        L{TwistedBuildStrategy._today} returns today's date in YYYY-MM-DD form.
         """
-        project = FilePath(self.mktemp()).child("twisted")
-        project.makedirs()
-        self.createStructure(
-            project, {
-                'NEWS': 'Old boring stuff from the past.\n',
-                '_version.py': genVersion("twisted", 1, 2, 3),
-                'topfiles': {
-                    'NEWS': 'Old core news.\n',
-                    '3.feature': 'Third feature addition.\n',
-                    '5.misc': ''},
-                'conch': {
-                    '_version.py': genVersion("twisted.conch", 3, 4, 5),
-                    'topfiles': {
-                        'NEWS': 'Old conch news.\n',
-                        '7.bugfix': 'Fixed that bug.\n'}}})
-        return project
+        strategy = TwistedBuildStrategy(newsBuilder=object())
+        self.assertEqual(
+            strategy._today(), date.today().strftime('%Y-%m-%d'))
 
 
     def test_buildAll(self):
         """
-        L{NewsBuilder.buildAll} calls L{NewsBuilder.build} once for each
+        L{TwistedBuildStrategy.buildAll} calls L{NewsBuilder.build} once for each
         subproject, passing that subproject's I{topfiles} directory as C{path},
         the I{NEWS} file in that directory as C{output}, and the subproject's
         name as C{header}, and then again for each subproject with the
@@ -713,11 +766,12 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         builder = NewsBuilder()
         builder.build = lambda path, output, header: builds.append((
             path, output, header))
-        builder._today = lambda: '2009-12-01'
 
-        project = self.createFakeTwistedProject()
-        self.svnCommit(project)
-        builder.buildAll(project)
+        project = createFakeTwistedProject(FilePath(self.mktemp()))
+        svnCommit(project, repository=FilePath(self.mktemp()))
+        strategy = TwistedBuildStrategy(newsBuilder=builder)
+        strategy._today = lambda: '2009-12-01'
+        strategy.buildAll(project)
 
         coreTopfiles = project.child("topfiles")
         coreNews = coreTopfiles.child("NEWS")
@@ -743,9 +797,10 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         files, only deleting fragments once it's done.
         """
         builder = NewsBuilder()
-        project = self.createFakeTwistedProject()
-        self.svnCommit(project)
-        builder.buildAll(project)
+        project = createFakeTwistedProject(FilePath(self.mktemp()))
+        svnCommit(project, repository=FilePath(self.mktemp()))
+        strategy = TwistedBuildStrategy(newsBuilder=builder)
+        strategy.buildAll(project)
 
         aggregateNews = project.child("NEWS")
 
@@ -755,46 +810,16 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
         self.assertIn("Old boring stuff from the past", aggregateContent)
 
 
-    def test_changeVersionInNews(self):
-        """
-        L{NewsBuilder._changeVersions} gets the release date for a given
-        version of a project as a string.
-        """
-        builder = NewsBuilder()
-        builder._today = lambda: '2009-12-01'
-        project = self.createFakeTwistedProject()
-        self.svnCommit(project)
-        builder.buildAll(project)
-        newVersion = Version('TEMPLATE', 7, 7, 14)
-        coreNews = project.child('topfiles').child('NEWS')
-        # twisted 1.2.3 is the old version.
-        builder._changeNewsVersion(
-            coreNews, "Core", Version("twisted", 1, 2, 3),
-            newVersion, '2010-01-01')
-        expectedCore = (
-            'Twisted Core 7.7.14 (2010-01-01)\n'
-            '================================\n'
-            '\n'
-            'Features\n'
-            '--------\n'
-            ' - Third feature addition. (#3)\n'
-            '\n'
-            'Other\n'
-            '-----\n'
-            ' - #5\n\n\n')
-        self.assertEqual(
-            expectedCore + 'Old core news.\n', coreNews.getContent())
-
-
     def test_removeNEWSfragments(self):
         """
-        L{NewsBuilder.buildALL} removes all the NEWS fragments after the build
-        process, using the C{svn} C{rm} command.
+        L{TwistedBuildStrategy.buildALL} removes all the NEWS fragments after
+        the build process, using the C{svn} C{rm} command.
         """
         builder = NewsBuilder()
-        project = self.createFakeTwistedProject()
-        self.svnCommit(project)
-        builder.buildAll(project)
+        project = createFakeTwistedProject(FilePath(self.mktemp()))
+        svnCommit(project, repository=FilePath(self.mktemp()))
+        strategy = TwistedBuildStrategy(newsBuilder=builder)
+        strategy.buildAll(project)
 
         self.assertEqual(5, len(project.children()))
         output = runCommand(["svn", "status", project.path])
@@ -805,30 +830,15 @@ class NewsBuilderTests(TestCase, StructureAssertingMixin):
 
     def test_checkSVN(self):
         """
-        L{NewsBuilder.buildAll} raises L{NotWorkingDirectory} when the given
-        path is not a SVN checkout.
+        L{TwistedBuildStrategy.buildAll} raises L{NotWorkingDirectory} when the
+        given path is not a SVN checkout.
         """
+        strategy = TwistedBuildStrategy(newsBuilder=object())
         self.assertRaises(
-            NotWorkingDirectory, self.builder.buildAll, self.project)
-
-
-
-class FakeNewsBuilder(object):
-    """
-    A fake L{NewsBuilder} which records the arguments passed to its methods.
-    """
-    def __init__(self):
-        """
-        Initialise lists for recording method calls.
-        """
-        self.buildAllCalls = []
-
-
-    def buildAll(self, baseDirectory):
-        """
-        Record calls to L{NewsBuilder.buildAll}.
-        """
-        self.buildAllCalls.append(baseDirectory)
+            NotWorkingDirectory,
+            strategy.buildAll,
+            createFakeTwistedProject(FilePath(self.mktemp()))
+        )
 
 
 
@@ -844,6 +854,26 @@ class NewsBuilderOptionsTests(TestCase):
         options = NewsBuilderOptions()
         options.parseOptions([expectedPath])
         self.assertEqual(FilePath(expectedPath), options['repositoryPath'])
+
+
+
+class FakeBuildStrategy(object):
+    """
+    A fake L{TwistedBuildStrategy} which records the arguments passed to its
+    methods.
+    """
+    def __init__(self):
+        """
+        Initialise lists for recording method calls.
+        """
+        self.buildAllCalls = []
+
+
+    def buildAll(self, baseDirectory):
+        """
+        Record calls to L{buildAll}.
+        """
+        self.buildAllCalls.append(baseDirectory)
 
 
 
@@ -872,7 +902,7 @@ class NewsBuilderScriptTests(TestCase):
 
     def test_argsTooFew(self):
         """
-        L{BuildNewsScript.main} raises L{SystemExit} when less than 1 argument
+        L{NewsBuilderScript.main} raises L{SystemExit} when less than 1 argument
         is passed to it and writes a message to stderr.
         """
         stderr = io.BytesIO()
@@ -886,7 +916,7 @@ class NewsBuilderScriptTests(TestCase):
 
     def test_argsTooMany(self):
         """
-        L{BuildNewsScript.main} raises L{SystemExit} when more than 1 argument
+        L{NewsBuilderScript.main} raises L{SystemExit} when more than 1 argument
         is passed to it and writes a message to stderr.
         """
         stderr = io.BytesIO()
@@ -900,14 +930,14 @@ class NewsBuilderScriptTests(TestCase):
 
     def test_mainCallsBuildAll(self):
         """
-        L{BuildNewsScript.main} calls C{self.newsBuilder.buildAll} with the
+        L{NewsBuilderScript.main} calls C{self.buildStrategy.buildAll} with the
         supplied repository directory path.
         """
         expectedPath = b'/foo/bar/baz'
-        fakeNewsBuilder = FakeNewsBuilder()
-        script = NewsBuilderScript(newsBuilder=fakeNewsBuilder)
+        fakeBuildStrategy = FakeBuildStrategy()
+        script = NewsBuilderScript(buildStrategy=fakeBuildStrategy)
         script.main([expectedPath])
         self.assertEqual(
             [FilePath(expectedPath)],
-            fakeNewsBuilder.buildAllCalls
+            fakeBuildStrategy.buildAllCalls
         )
